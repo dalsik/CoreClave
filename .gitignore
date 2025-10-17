@@ -1,0 +1,14 @@
+# Unreal Engine
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+.vs/
+.vscode/
+.sln/
+
+# Build system
+*.pdb
+*.obj
+*.exe
+*.dll
