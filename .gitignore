@@ -7,6 +7,10 @@ Saved/
 .vscode/
 .sln/
 
+# Paid Asset
+Content/SciFi_Dog
+Content/FuturisticWarrior
+
 # Build system
 *.pdb
 *.obj
