@@ -20,7 +20,7 @@ public:
 	// 리플리케이션을 위해 필요한 함수(CardID 등록용)
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 protected:
-	// Called when the game starts or when spawned
+	
 	// 유닛의 몸체가 될 스클레탈 메시 컴포넌트
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MainMesh;

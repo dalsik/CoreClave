@@ -9,18 +9,45 @@
 /**
  * 
  */
+
+class UCanvasPanel;
+
 UCLASS()
 class CORECLAVE_API UCoreClaveUserWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
 public:
-	// 카드를 뽑는 효과 함수
-	UFUNCTION(BlueprintCallable, Category = "Card Motion")
-	void PlayerDrawAnimation();
+
+	UFUNCTION(BlueprintCallable, Category = "Card System")
+	void AddCardTohand();
+
+	// 카드를 부채꼴로 유지하는 함수
+	void UpdateHandLayout();
+protected:
+	virtual void NativeConstruct() override;
 
 protected:
-	// 위젯 블루프린트에 있는 애니메이션을 가져오기 위한 함수
-	UPROPERTY(Transient, meta = (BindWidgetAnim))
-	class UWidgetAnimation* DrawAnim;
+	
+	// 카드가 배치될 캔버스 패널
+	UPROPERTY(meta = (BindWidget))
+	UCanvasPanel* CardHandPanel;
+
+	// 생성할 카드 위젯 클래스
+	UPROPERTY(EditDefaultsOnly, Category = "Card System")
+	TSubclassOf<UUserWidget> CardWidgetClass;
+
+	// 현재 들고 있는 카드들의 목록 관리
+	UPROPERTY()
+	TArray<UUserWidget*> HandCards;
+
+	UPROPERTY(EditAnywhere, Category = "Card System");
+	UDataTable* UnitDataTable;
+
+	UPROPERTY(EditAnywhere, Category = "Card System")
+	int32 MAX_CARD_NUMS;
+
+	// 부채꼴 모양 설정값
+	const float ArchRadius = 800.0f; // 부채꼴 반지름 (클수록 완만함)
+	const float MaxSpreadAngle = 40.0f; // 카드가 최대로 펼쳐질 각도 범위
 };
