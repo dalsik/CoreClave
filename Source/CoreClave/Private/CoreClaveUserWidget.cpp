@@ -11,11 +11,41 @@ void UCoreClaveUserWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// 테스트 : 게임 시작 시 카드 1장 가지고 시작
-	UUserWidget* NewCard = CreateWidget<UUserWidget>(GetOwningPlayer(), CardWidgetClass);
-	HandCards.Add(NewCard);
+
+	if (CardWidgetClass && CardHandPanel) {
+		for (int32 i = 0; i < START_CARD_NUMS; i++) {
+			//게임 시작 시 카드 가지고 시작(변수는 에디터에 쉽게 적용할 수 있도록)
+			UUserWidget* NewCard = CreateWidget<UUserWidget>(GetOwningPlayer(), CardWidgetClass);
+			if (NewCard) {
+				CardHandPanel->AddChildToCanvas(NewCard);
+
+				// 관리할 수 있도록 카드 배열에 추가하고
+				HandCards.Add(NewCard);
+
+				// 덱 위치로 초기화 (중여기서 덱 위치로 안 보내면 화면 중앙에서 뿅 하고 나타남)
+				if (WBP_CardPack)
+				{
+					UCanvasPanelSlot* NewSlot = Cast<UCanvasPanelSlot>(NewCard->Slot);
+					UCanvasPanelSlot* DeckSlot = Cast<UCanvasPanelSlot>(WBP_CardPack->Slot);
+					if (NewSlot && DeckSlot)
+					{
+						NewSlot->SetPosition(DeckSlot->GetPosition());
+					}
+				}
+
+				//0.0f 전달 (처음엔 보간 없이 즉시 위치 잡고 싶으면 로직 분리 필요하지만, 일단 0 전달)
+				UpdateHandLayout(0.0f);
+			}
+		}
+	}
 }
 
+void UCoreClaveUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	
+	UpdateHandLayout(InDeltaTime);
+}
 
 
 void UCoreClaveUserWidget::AddCardTohand()
@@ -24,7 +54,7 @@ void UCoreClaveUserWidget::AddCardTohand()
 	if (!CardWidgetClass || !CardHandPanel) return;
 	
 	// 최대 카드 확인
-	if (HandCards.Num() >= 6)
+	if (HandCards.Num() >= MAX_CARD_NUMS)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Card is FULL"));
 		return;
@@ -41,15 +71,22 @@ void UCoreClaveUserWidget::AddCardTohand()
 		// 관리 배열에 추가
 		HandCards.Add(NewCard);
 
-		// 함수 호출
-		UpdateHandLayout();
-	}
+		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(NewCard->Slot);
 
+		if (CanvasSlot && WBP_CardPack)
+		{
+			UCanvasPanelSlot* DeckSlot = Cast<UCanvasPanelSlot>(WBP_CardPack->Slot);
+			if (DeckSlot)
+			{
+				CanvasSlot->SetPosition(DeckSlot->GetPosition());
+			}
+		}
+	}
 }
 
 // 카드를 부채꼴로 만들어주는 함수
 
-void UCoreClaveUserWidget::UpdateHandLayout()
+void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 {
 	int32 CardCount = HandCards.Num();
 	if (CardCount == 0) return;
@@ -83,31 +120,40 @@ void UCoreClaveUserWidget::UpdateHandLayout()
 			CanvasSlot->SetAutoSize(true); // 카드 본래의 크기를 유지하도록 한다.
 
 
+			bool bIsHovered = Card->IsHovered();
+
 			// 각도 계산
-			float TargetAngle = StartAngle + (i * AngleStep);
+			float TargetAngle = bIsHovered ? 0.0f : StartAngle + (i * AngleStep);
 			
 			// 원형좌표 계산(Sin, Cos 활용)
-			// 반지름을 이용해 원 둘레상의 좌표를 구한다.
+			// 반지름을 이용해 원 둘레상의 좌표를 구한다. (Sin,Cos는 각도가 아니라, Radian을 사용하기 때문에 변환 필요)
 			float Radian = FMath::DegreesToRadians(TargetAngle - 90.0f); // -90도는 12방향을 0도로 맞추기 위함.
+			// 수학에서의 0도는 오른쪽 3시방향을 의미하기 때문에 -90도를  하는거임.
 
-			float X = ArchRadius * FMath::Cos(Radian);
-			float Y = ArchRadius * FMath::Sin(Radian);
 
-			// 원의 중심이 화면 아래쪽에 있다고 가정하고 보정
-			Y += ArchRadius;
+			float TargetX = ArchRadius * FMath::Cos(Radian);
+			float TargetY = ArchRadius * FMath::Sin(Radian) + ArchRadius;
+
+			if (bIsHovered) {
+				TargetY -= MouseEnter_TargetY;
+			}
+
+			FVector2D TargetPos(TargetX, TargetY);
+
+			FVector2D CurrentPos = CanvasSlot->GetPosition();
+			float InterpSpeed = bIsHovered ? 15.0f : Power;
+
+			//현재 위치에서 목표 위치로 10의 속도로 부드럽게 이동(InterpTo)
+			FVector2D NewPos = FMath::Vector2DInterpTo(CurrentPos, TargetPos, DeltaTime, Power);
 
 			// 위치 적용
-			CanvasSlot->SetPosition(FVector2D(X, Y));
+			CanvasSlot->SetPosition(NewPos);
 
+			
 			// 회전 적용
-			Card->SetRenderTransformAngle(TargetAngle);
-
+			float CurrentAngle = Card->GetRenderTransform().Angle;
+			float NewAngle = FMath::FInterpTo(CurrentAngle, TargetAngle, DeltaTime, Power);
+			Card->SetRenderTransformAngle(NewAngle);
 		}
-
 	}
 }
-
-
-
-
-

@@ -23,9 +23,10 @@ public:
 	void AddCardTohand();
 
 	// 카드를 부채꼴로 유지하는 함수
-	void UpdateHandLayout();
+	void UpdateHandLayout(float InDeltaTime);
 protected:
 	virtual void NativeConstruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 protected:
 	
@@ -46,6 +47,18 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Card System")
 	int32 MAX_CARD_NUMS;
+	
+	UPROPERTY(EditAnywhere, Category = "Card System")
+	int32 START_CARD_NUMS;
+
+	UPROPERTY(EditAnywhere, Category = "Card System")
+	int32 MouseEnter_TargetY;
+
+	UPROPERTY(meta = (BindWidgetOptional)) // 카드팩 WBP 자동 할당.
+	class UWidget* WBP_CardPack;
+
+	UPROPERTY(EditAnywhere, CateGory = "Card System")
+	float Power;
 
 	// 부채꼴 모양 설정값
 	const float ArchRadius = 800.0f; // 부채꼴 반지름 (클수록 완만함)
