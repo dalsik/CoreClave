@@ -6,39 +6,36 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Blueprint/WidgetLayoutLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "CardUserWidget.h"
+#include "CardStatData.h"
 
 void UCoreClaveUserWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// 현재는 테스트를 위해서 임의의 덱 리스트를 생성
+	PlayerDeckStack.Add(FName("Card_002_Nor"));
+	PlayerDeckStack.Add(FName("Card_001_Nor"));
+	PlayerDeckStack.Add(FName("Card_002_Nor"));
+	PlayerDeckStack.Add(FName("Card_001_Nor"));
+	PlayerDeckStack.Add(FName("Card_002_Nor"));
+	PlayerDeckStack.Add(FName("Card_001_Nor"));
+	PlayerDeckStack.Add(FName("Card_002_Nor"));
 
-	if (CardWidgetClass && CardHandPanel) {
-		for (int32 i = 0; i < START_CARD_NUMS; i++) {
-			//게임 시작 시 카드 가지고 시작(변수는 에디터에 쉽게 적용할 수 있도록)
-			UUserWidget* NewCard = CreateWidget<UUserWidget>(GetOwningPlayer(), CardWidgetClass);
-			if (NewCard) {
-				CardHandPanel->AddChildToCanvas(NewCard);
 
-				// 관리할 수 있도록 카드 배열에 추가하고
-				HandCards.Add(NewCard);
 
-				// 덱 위치로 초기화 (중여기서 덱 위치로 안 보내면 화면 중앙에서 뿅 하고 나타남)
-				if (WBP_CardPack)
-				{
-					UCanvasPanelSlot* NewSlot = Cast<UCanvasPanelSlot>(NewCard->Slot);
-					UCanvasPanelSlot* DeckSlot = Cast<UCanvasPanelSlot>(WBP_CardPack->Slot);
-					if (NewSlot && DeckSlot)
-					{
-						NewSlot->SetPosition(DeckSlot->GetPosition());
-					}
-				}
-
-				//0.0f 전달 (처음엔 보간 없이 즉시 위치 잡고 싶으면 로직 분리 필요하지만, 일단 0 전달)
-				UpdateHandLayout(0.0f);
-			}
+	if (CardWidgetClass && CardHandPanel && UnitDataTable) 
+	{
+		for (int32 i = 0; i < START_CARD_NUMS; i++)
+		{
+			CreateCardAndAddToHand();
 		}
+
+		// 초기 배치 즉시 적용
+		UpdateHandLayout(0.0f);
 	}
 }
+
 
 void UCoreClaveUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
@@ -50,42 +47,84 @@ void UCoreClaveUserWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 
 void UCoreClaveUserWidget::AddCardTohand()
 {
-	// 예외 처리 -> 카드 클래스가 없거나 패널 할당되지 않으면 에러
-	if (!CardWidgetClass || !CardHandPanel) return;
+	CreateCardAndAddToHand();
+}
+
+
+// 실제 카드 생성 로직
+void UCoreClaveUserWidget::CreateCardAndAddToHand()
+{
+	if (!CardWidgetClass || !CardHandPanel || !UnitDataTable) return;
 	
-	// 최대 카드 확인
 	if (HandCards.Num() >= MAX_CARD_NUMS)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Card is FULL"));
+		UE_LOG(LogTemp, Warning, TEXT("Hand is FULL"));
 		return;
 	}
 
-	// 카드 위젯 생성
-	UUserWidget* NewCard = CreateWidget<UUserWidget>(GetOwningPlayer(), CardWidgetClass);
+	// 현재 덱에 남은 카드가 있는지 확인
+	// **********************************************************
+	// 나중에 이 부분에서 카드를 다 쓰면 피가 닳게하던, 아니면 다시 덱에 있는 카드에서 뽑게 하던 해야할 듯.
+	if (PlayerDeckStack.Num() <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Deck Is Empty"));
+		return;
+	}
+	FName NextCardName = PlayerDeckStack[0];
+	
+	PlayerDeckStack.RemoveAt(0);
+	
+	// 데이터 테이블에서 해당 이름의 정보 탐색
+	static const FString ContextString(TEXT("CardData Context"));
+	FCardStatData* CardData = UnitDataTable->FindRow<FCardStatData>(NextCardName, ContextString);
+	
+	if (!CardData)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Cannot find card data for table"));
+		return;
+	}
+
+	UCardUserWidget* NewCard = CreateWidget<UCardUserWidget>(GetOwningPlayer(), CardWidgetClass);
 
 	if (NewCard)
 	{
-		// 패널에 자식으로 추가
+		NewCard->SetCardData(*CardData); // 카드 정보 설정 및 할당하기(CardUserWidget.cpp)
+		
+		// 핸드 패널에 추가
 		CardHandPanel->AddChildToCanvas(NewCard);
-
-		// 관리 배열에 추가
 		HandCards.Add(NewCard);
 
-		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(NewCard->Slot);
-
-		if (CanvasSlot && WBP_CardPack)
+		// 위치 초기화
+		if (WBP_CardPack)
 		{
+			UCanvasPanelSlot* NewSlot = Cast<UCanvasPanelSlot>(NewCard->Slot);
 			UCanvasPanelSlot* DeckSlot = Cast<UCanvasPanelSlot>(WBP_CardPack->Slot);
-			if (DeckSlot)
+			
+			if (NewSlot && DeckSlot)
 			{
-				CanvasSlot->SetPosition(DeckSlot->GetPosition());
+				NewSlot->SetPosition(DeckSlot->GetPosition());
 			}
 		}
 	}
 }
 
-// 카드를 부채꼴로 만들어주는 함수
 
+// 카드를 제거해주는 함수
+void UCoreClaveUserWidget::ReMoveCardFromHand(UUserWidget* CardToRemove)
+{
+	if (!CardToRemove) return;
+
+	if (HandCards.Contains(CardToRemove))
+	{
+		HandCards.Remove(CardToRemove);
+	}
+
+	CardToRemove->RemoveFromParent();
+
+	UpdateHandLayout(0.0f);
+}
+
+// 카드를 부채꼴로 만들어주는 함수
 void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 {
 	int32 CardCount = HandCards.Num();
@@ -143,7 +182,7 @@ void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 			FVector2D CurrentPos = CanvasSlot->GetPosition();
 			float InterpSpeed = bIsHovered ? 15.0f : Power;
 
-			//현재 위치에서 목표 위치로 10의 속도로 부드럽게 이동(InterpTo)
+			//현재 위치에서 목 표 위치로 10의 속도로 부드럽게 이동(InterpTo)
 			FVector2D NewPos = FMath::Vector2DInterpTo(CurrentPos, TargetPos, DeltaTime, Power);
 
 			// 위치 적용

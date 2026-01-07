@@ -24,9 +24,19 @@ public:
 
 	// 카드를 부채꼴로 유지하는 함수
 	void UpdateHandLayout(float InDeltaTime);
+
+	// 카드를 핸드에서 제거하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Card System")
+	void ReMoveCardFromHand(UUserWidget* CardToReMove);
+
+
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+	
+	// 카드 생성 및 데이터 삽입을 담당하는 함수
+	void CreateCardAndAddToHand();
+
 
 protected:
 	
@@ -34,31 +44,34 @@ protected:
 	UPROPERTY(meta = (BindWidget))
 	UCanvasPanel* CardHandPanel;
 
-	// 생성할 카드 위젯 클래스
-	UPROPERTY(EditDefaultsOnly, Category = "Card System")
-	TSubclassOf<UUserWidget> CardWidgetClass;
+	UPROPERTY(meta = (BindWidgetOptional)) // 카드팩 WBP 자동 할당.
+	class UWidget* WBP_CardPack;
 
 	// 현재 들고 있는 카드들의 목록 관리
 	UPROPERTY()
 	TArray<UUserWidget*> HandCards;
 
+	// 생성할 카드 위젯 클래스
+	UPROPERTY(EditDefaultsOnly, Category = "Card System")
+	TSubclassOf<UUserWidget> CardWidgetClass;
+
 	UPROPERTY(EditAnywhere, Category = "Card System");
 	UDataTable* UnitDataTable;
 
 	UPROPERTY(EditAnywhere, Category = "Card System")
-	int32 MAX_CARD_NUMS;
+	int32 MAX_CARD_NUMS = 10;
 	
 	UPROPERTY(EditAnywhere, Category = "Card System")
-	int32 START_CARD_NUMS;
+	int32 START_CARD_NUMS = 5;
 
 	UPROPERTY(EditAnywhere, Category = "Card System")
-	int32 MouseEnter_TargetY;
-
-	UPROPERTY(meta = (BindWidgetOptional)) // 카드팩 WBP 자동 할당.
-	class UWidget* WBP_CardPack;
+	int32 MouseEnter_TargetY = 300;
 
 	UPROPERTY(EditAnywhere, CateGory = "Card System")
-	float Power;
+	float Power = 5.0f;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Card System")
+	TArray<FName> PlayerDeckStack;
 
 	// 부채꼴 모양 설정값
 	const float ArchRadius = 800.0f; // 부채꼴 반지름 (클수록 완만함)
