@@ -162,19 +162,26 @@ void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 			bool bIsHovered = Card->IsHovered();
 
 			// 각도 계산
-			float TargetAngle = bIsHovered ? 0.0f : StartAngle + (i * AngleStep);
-			
+			float DefaultAngle = StartAngle + (i * AngleStep);
+
 			// 원형좌표 계산(Sin, Cos 활용)
 			// 반지름을 이용해 원 둘레상의 좌표를 구한다. (Sin,Cos는 각도가 아니라, Radian을 사용하기 때문에 변환 필요)
-			float Radian = FMath::DegreesToRadians(TargetAngle - 90.0f); // -90도는 12방향을 0도로 맞추기 위함.
+			float Pos_Radian = FMath::DegreesToRadians(DefaultAngle - 90.0f); // -90도는 12방향을 0도로 맞추기 위함.
 			// 수학에서의 0도는 오른쪽 3시방향을 의미하기 때문에 -90도를  하는거임.
 
 
-			float TargetX = ArchRadius * FMath::Cos(Radian);
-			float TargetY = ArchRadius * FMath::Sin(Radian) + ArchRadius;
+			float TargetX = ArchRadius * FMath::Cos(Pos_Radian);
+			float TargetY = ArchRadius * FMath::Sin(Pos_Radian) + ArchRadius;
+
+			float TargetAngle; // 호버 시 0도로 적용하기 위함
 
 			if (bIsHovered) {
+				TargetAngle = 0.0f;
 				TargetY -= MouseEnter_TargetY;
+			}
+			else
+			{
+				TargetAngle = DefaultAngle;
 			}
 
 			FVector2D TargetPos(TargetX, TargetY);
