@@ -19,6 +19,9 @@ public:
 
 	// 리플리케이션을 위해 필요한 함수(CardID 등록용)
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Unit Data")
+	int32 MoveDirection = 1; // +1 or -1
 protected:
 	
 	// 유닛의 몸체가 될 스클레탈 메시 컴포넌트
@@ -32,6 +35,8 @@ protected:
 	// 값이 바뀌는 것을 감지해서 전체 클라이언트에게 적용을 해줄 변수명 선언
 	UPROPERTY(ReplicatedUsing = OnRep_CardID, BlueprintReadOnly, Category = "Unit Data")
 	FName RepCardID;
+
+
 
 	// 클라이언트가 CardID를 받으면 자동으로 실행할 함수
 	UFUNCTION()

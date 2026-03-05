@@ -13,6 +13,14 @@ void UCoreClaveUserWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// 로컬 플레이어의 소유인지 확인
+	// 서버에서는 UI 로직을 실행하지 않도록 하기 위함
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC || !PC->IsLocalController())
+	{
+		return; // 서버이거나 다른 클라이언트 소유면 중단
+	}
+
 	// 현재는 테스트를 위해서 임의의 덱 리스트를 생성
 	PlayerDeckStack.Add(FName("Card_002_Nor"));
 	PlayerDeckStack.Add(FName("Card_001_Nor"));
@@ -40,7 +48,10 @@ void UCoreClaveUserWidget::NativeConstruct()
 void UCoreClaveUserWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	
+
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC || !PC->IsLocalController()) return;
+
 	UpdateHandLayout(InDeltaTime);
 }
 

@@ -1,10 +1,11 @@
 #include "GridCell.h"
 #include "Components/BoxComponent.h"
+#include "Net/UnrealNetwork.h"
 
 AGridCell::AGridCell()
 {
     PrimaryActorTick.bCanEverTick = false;
-
+    bReplicates = true;
     // 루트 씬 컴포넌트
     USceneComponent* Root = CreateDefaultSubobject<USceneComponent>(
         TEXT("Root"));
@@ -21,6 +22,17 @@ AGridCell::AGridCell()
     BoxCollision->SetCollisionResponseToAllChannels(ECR_Ignore);
     BoxCollision->SetCollisionResponseToChannel(
         ECC_Visibility, ECR_Block);
+}
+
+void AGridCell::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+    Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+    // Replicated로 설정한 변수들을 등록을 해야 클라이언트에게도 정보가 주어진다.
+    DOREPLIFETIME(AGridCell, Row);
+    DOREPLIFETIME(AGridCell, Col);
+    DOREPLIFETIME(AGridCell, CellState);
+    DOREPLIFETIME(AGridCell, OccupyingUnit);
 }
 
 void AGridCell::BeginPlay()

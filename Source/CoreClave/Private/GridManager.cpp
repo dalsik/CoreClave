@@ -10,6 +10,7 @@ AGridManager::AGridManager()
 void AGridManager::BeginPlay()
 {
     Super::BeginPlay();
+    // 시작 시 그리드 판 깔아주기
     InitializeGrid();
 }
 
@@ -84,11 +85,12 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col,
         return nullptr;
     }
 
+    // 해당 Row,Col에 해당하는 Cell의 인덱스를 찾아서 Cell에 할당한다
     AGridCell* Cell = GetCell(Row, Col);
     if (!Cell) return nullptr;
 
     // 유닛을 셀 위치에 스폰 (Z 오프셋으로 바닥 위에 올림)
-    FVector SpawnPos = Cell->GetActorLocation() + FVector(0, 0, 50.f);
+    FVector SpawnPos = Cell->GetActorLocation() + FVector(0, 0, 10.f);
     FActorSpawnParameters Params;
     Params.SpawnCollisionHandlingOverride =
         ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -98,11 +100,12 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col,
 
     if (Unit)
     {
-        // 셀 상태 업데이트
+        // 셀 상태 업데이트(해당 타일에게 점유되어 있다고 상태를 업데이트 하기)
         Cell->SetOccupied(Unit);
         Cell->OnUnitSpawned(Unit);
 
         // 델리게이트 브로드캐스트 (BP에서 바인딩 가능)
+        // 유닛이 스폰이 되었을 경우에 델리게이트를 통해 소식 알리기
         OnCellStateChanged.Broadcast(Row, Col);
     }
 
@@ -148,8 +151,8 @@ FVector AGridManager::GetWorldPositionFromCell(int32 Row, int32 Col) const
 {
     FVector Origin = GetActorLocation();
     return FVector(
-        Origin.X + (Col * CellSize),
-        Origin.Y + (Row * CellSize),
+        Origin.X + (Row * CellSize),
+        Origin.Y + (Col * CellSize),
         Origin.Z
     );
 }
@@ -195,6 +198,49 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol,
     return true;
 }
 
+// 유닛들을 앞에라인부터 움직이도록 하게 해주는 함수
+void AGridManager::AdvanceAllUnits()
+{
+    if (!HasAuthority()) return;
+
+    // +1 방향 유닛 → 높은 Row부터 처리 (앞에 있는 유닛 먼저 이동)
+    for (int32 r = GridRows - 1; r >= 0; r--)
+    {
+        for (int32 c = 0; c < GridCols; c++)
+        {
+            AGridCell* Cell = GetCell(r, c);
+            if (!Cell || Cell->IsEmpty()) continue;
+
+            ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+            if (!Unit || Unit->MoveDirection != 1) continue;
+
+            int32 NextRow = r + 1;
+            if (!IsValidCell(NextRow, c)) continue;
+
+            MoveUnit(r, c, NextRow, c);
+        }
+    }
+
+    // -1 방향 유닛 → 낮은 Row부터 처리
+    for (int32 r = 0; r < GridRows; r++)
+    {
+        for (int32 c = 0; c < GridCols; c++)
+        {
+            AGridCell* Cell = GetCell(r, c);
+            if (!Cell || Cell->IsEmpty()) continue;
+
+            ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+            if (!Unit || Unit->MoveDirection != -1) continue;
+
+            int32 NextRow = r - 1;
+            if (!IsValidCell(NextRow, c)) continue;
+
+            MoveUnit(r, c, NextRow, c);
+        }
+    }
+}
+
+
 void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell)
 {
     // 이전 하이라이트 끄기
@@ -215,6 +261,7 @@ void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell)
 
 void AGridManager::ClearAllHighlights()
 {
+    // 모든 하이라이트 된 셀 제거하기
     for (AGridCell* Cell : GridCells)
     {
         if (Cell) Cell->SetHighlight(false, false);
@@ -224,5 +271,6 @@ void AGridManager::ClearAllHighlights()
 
 int32 AGridManager::GetIndex(int32 Row, int32 Col) const
 {
+    // 우리는 행/열로 생각하지만 인덱스를 반환해야 하므로 인덱스 계산 로직
     return Row * GridCols + Col;
 }

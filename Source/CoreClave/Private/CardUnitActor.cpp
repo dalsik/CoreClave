@@ -15,15 +15,17 @@ ACardUnitActor::ACardUnitActor()
 	RootComponent = MainMesh;
 
 	bReplicates = true;
+	SetReplicateMovement(true); // 해당 코드가 있어야 서버에서 위치를 바꾸었을 때 클라이언트에 위치 동기화 가능함
 }
 
 void ACardUnitActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-
 	// RepCardID 변수를 리플리케이션 목록에 등록.
 	DOREPLIFETIME(ACardUnitActor, RepCardID);
+	// 방향 변수를 리플리케이션 목록에 등록
+	DOREPLIFETIME(ACardUnitActor, MoveDirection);
 }
 
 // 이 함수를 통해서 서버가 RepCardID 값을 바꾸어준다.

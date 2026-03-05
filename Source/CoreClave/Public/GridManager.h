@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GridType.h"
+#include "CardUnitActor.h"
 #include "GridManager.generated.h"
 
 class AGridCell;
@@ -13,7 +14,7 @@ class AUnitBase;
  * BP에서 참조해서 함수 호출
  */
 
- // 셀 선택 이벤트 델리게이트 (BP 바인딩용)
+// 셀 선택 이벤트 델리게이트 (BP 바인딩용)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
     FOnCellStateChanged, int32, Row, int32, Col);
 
@@ -122,6 +123,9 @@ public:
     bool MoveUnit(int32 FromRow, int32 FromCol,
         int32 ToRow, int32 ToCol);
 
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void AdvanceAllUnits();
+    
     /**
      * 드래그 중 하이라이트 처리
      * BP PlayerController Tick에서 호출

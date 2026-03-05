@@ -7,7 +7,7 @@
 #include "GridType.generated.h"
 
 /**
- * 
+ * 해당 코드는 각 그리드가 가지고 있을 정보들을 나타내는 것이다.
  */
 
 UENUM(BlueprintType)
@@ -39,4 +39,3 @@ struct FGridCellData
     // 점유 중인 유닛 (약참조로 순환참조 방지)
     TWeakObjectPtr<AActor> OccupyingUnit;
 };
-

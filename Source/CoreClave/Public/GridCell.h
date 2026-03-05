@@ -18,21 +18,24 @@ class CORECLAVE_API AGridCell : public AActor
 public:
     AGridCell();
 
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
     // ─────────────────────────────────────────
     // 셀 기본 데이터 (GridManager가 초기화 시 세팅)
     // ─────────────────────────────────────────
 
-    UPROPERTY(BlueprintReadOnly, Category = "Grid")
+    UPROPERTY(Replicated, BlueprintReadOnly, Category = "Grid")
     int32 Row = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Grid")
+    UPROPERTY(Replicated, BlueprintReadOnly, Category = "Grid")
     int32 Col = 0;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Grid")
+    UPROPERTY(Replicated, BlueprintReadOnly, Category = "Grid")
     ECellState CellState = ECellState::Empty;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Grid")
+    UPROPERTY(Replicated, BlueprintReadOnly, Category = "Grid")
     AActor* OccupyingUnit = nullptr;
+
 
     // ─────────────────────────────────────────
     // BP에서 호출 가능한 함수들
