@@ -95,6 +95,8 @@ void UCoreClaveUserWidget::CreateCardAndAddToHand()
 		return;
 	}
 
+	CardData->CardId = NextCardName;
+
 	UCardUserWidget* NewCard = CreateWidget<UCardUserWidget>(GetOwningPlayer(), CardWidgetClass);
 
 	if (NewCard)

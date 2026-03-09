@@ -103,3 +103,28 @@ void ACardUnitActor::OnMeshLoaded(TSoftObjectPtr<USkeletalMesh> LoadedMeshAsset)
 		MainMesh->SetSkeletalMesh(Mesh);
 	}
 }
+
+void ACardUnitActor::SetPreviewMode(bool bEnable)
+{
+	if (!MainMesh) return;
+
+	if (bEnable)
+	{
+		// 레이캐스트에 안걸리도록 충돌 비활성화
+		MainMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		
+		// 프리뷰 머터리얼로 교체
+		for (int32 i = 0; i < PreviewMaterials.Num(); i++)
+		{
+			if (PreviewMaterials[i])
+			{
+				MainMesh->SetMaterial(i, PreviewMaterials[i]);
+			}
+		}
+	}
+	else
+	{
+		// 충돌 복구
+		MainMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+}

@@ -36,7 +36,11 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_CardID, BlueprintReadOnly, Category = "Unit Data")
 	FName RepCardID;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Preview")
+	TArray<UMaterialInterface*> PreviewMaterials;
 
+	UFUNCTION(BlueprintCallable, Category = "Preview")
+	void SetPreviewMode(bool bEnable);
 
 	// 클라이언트가 CardID를 받으면 자동으로 실행할 함수
 	UFUNCTION()

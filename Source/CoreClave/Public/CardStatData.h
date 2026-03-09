@@ -16,7 +16,10 @@ struct FCardStatData : public FTableRowBase
 public:
 	// 기획 데이터
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText CardName; // 이름
+	FName CardId; // 데이터 연결용
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FText CardName; // 겉보기용
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float HP;

@@ -20,3 +20,4 @@ void UCardUserWidget::SetCardData(const FCardStatData& Data)
 		}
 	}
 }
+

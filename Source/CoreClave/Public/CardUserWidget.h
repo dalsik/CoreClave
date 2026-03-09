@@ -30,4 +30,10 @@ public:
 	// 데이터를 받아서 UI를 갱신하는 함수
 	UFUNCTION(BlueprintCallable, Category = "Data")
 	void SetCardData(const FCardStatData& Data);
+
+	// CardId를 반환하는 함수
+	UFUNCTION(BlueprintCallable, Category = "Data")
+	FName GetCardId() const {
+		return CachedCardData.CardId;
+	}
 };
