@@ -21,7 +21,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Unit Data")
-	int32 MoveDirection = 1; // +1 or -1
+	int32 MoveDirection = 1; // +1 or -1 
 protected:
 	
 	// À¯´ÖÀÇ ¸öÃ¼°¡ µÉ ½ºÅ¬·¹Å» ¸Þ½Ã ÄÄÆ÷³ÍÆ®

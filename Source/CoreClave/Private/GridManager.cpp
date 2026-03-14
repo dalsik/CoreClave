@@ -199,43 +199,48 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol,
 }
 
 // 유닛들을 앞에라인부터 움직이도록 하게 해주는 함수
-void AGridManager::AdvanceAllUnits()
+void AGridManager::AdvanceAllUnits(int32 MoveDirection)
 {
     if (!HasAuthority()) return;
 
-    // +1 방향 유닛 → 높은 Row부터 처리 (앞에 있는 유닛 먼저 이동)
-    for (int32 r = GridRows - 1; r >= 0; r--)
+    if (MoveDirection == -1)
     {
-        for (int32 c = 0; c < GridCols; c++)
+        // +1 방향 유닛 높은 Row 부터 처리하도록
+        for (int32 r = GridRows - 1; r >= 0; r--)
         {
-            AGridCell* Cell = GetCell(r, c);
-            if (!Cell || Cell->IsEmpty()) continue;
-
-            ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
-            if (!Unit || Unit->MoveDirection != 1) continue;
-
-            int32 NextRow = r + 1;
-            if (!IsValidCell(NextRow, c)) continue;
-
-            MoveUnit(r, c, NextRow, c);
+            for (int32 c = 0; c < GridCols; c++)
+            {
+                AGridCell* Cell = GetCell(r, c);
+                if (!Cell || Cell->IsEmpty()) continue;
+                
+                ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+                if (!Unit || Unit->MoveDirection != -1) continue;
+                
+                int32 NextRow = r + 1;
+                if (!IsValidCell(NextRow, c)) continue;
+                
+				MoveUnit(r, c, NextRow, c);
+            }
         }
     }
-
-    // -1 방향 유닛 → 낮은 Row부터 처리
-    for (int32 r = 0; r < GridRows; r++)
+    if (MoveDirection == 1)
     {
-        for (int32 c = 0; c < GridCols; c++)
+        // +1 방향 유닛 높은 Row 부터 처리하도록
+        for (int32 r = 0; r < GridRows; r++)
         {
-            AGridCell* Cell = GetCell(r, c);
-            if (!Cell || Cell->IsEmpty()) continue;
+            for (int32 c = 0; c < GridCols; c++)
+            {
+                AGridCell* Cell = GetCell(r, c);
+                if (!Cell || Cell->IsEmpty()) continue;
 
-            ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
-            if (!Unit || Unit->MoveDirection != -1) continue;
+                ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+                if (!Unit || Unit->MoveDirection != 1) continue;
 
-            int32 NextRow = r - 1;
-            if (!IsValidCell(NextRow, c)) continue;
+                int32 NextRow = r - 1;
+                if (!IsValidCell(NextRow, c)) continue;
 
-            MoveUnit(r, c, NextRow, c);
+                MoveUnit(r, c, NextRow, c);
+            }
         }
     }
 }

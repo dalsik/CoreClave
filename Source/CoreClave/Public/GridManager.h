@@ -124,7 +124,7 @@ public:
         int32 ToRow, int32 ToCol);
 
     UFUNCTION(BlueprintCallable, Category = "Grid")
-    void AdvanceAllUnits();
+    void AdvanceAllUnits(int32 MoveDirection);
     
     /**
      * 드래그 중 하이라이트 처리
