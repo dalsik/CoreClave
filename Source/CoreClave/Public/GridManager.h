@@ -2,11 +2,12 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GridType.h"
-#include "CardUnitActor.h"
 #include "GridManager.generated.h"
 
 class AGridCell;
 class AUnitBase;
+class ACardUnitActor;
+class ACombatManager;
 
 /**
  * 그리드 전체를 관리하는 매니저
@@ -53,6 +54,9 @@ public:
     /** 셀 배열 */
     UPROPERTY(BlueprintReadOnly, Category = "Grid")
     TArray<AGridCell*> GridCells;
+
+    UPROPERTY()
+    ACombatManager* CombatManager = nullptr;
 
     // ─────────────────────────────────────────
     // 델리게이트 (BP에서 바인딩)

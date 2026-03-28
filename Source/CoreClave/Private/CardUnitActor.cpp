@@ -26,6 +26,8 @@ void ACardUnitActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(ACardUnitActor, RepCardID);
 	// 방향 변수를 리플리케이션 목록에 등록
 	DOREPLIFETIME(ACardUnitActor, MoveDirection);
+	// 자신의 셀을 레플리케이션 목록에 등록
+	DOREPLIFETIME(ACardUnitActor, CurrentCell);
 }
 
 // 이 함수를 통해서 서버가 RepCardID 값을 바꾸어준다.
@@ -64,7 +66,6 @@ void ACardUnitActor::LoadMeshFromID(FName CardID)
 	{
 		// 수치 데이터 적용
 		CurrentHP = UnitData->HP;
-		CurrentATK = UnitData->ATK;
 		CurrentSpeed = UnitData->Speed;
 
 		// 스켈레탈 메시 비동기로 로딩 진행

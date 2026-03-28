@@ -1,5 +1,8 @@
 #include "GridManager.h"
 #include "GridCell.h"
+#include "CardUnitActor.h"
+#include "CombatManager.h"
+#include "Kismet/GameplayStatics.h"
 #include "Components/BoxComponent.h"
 
 AGridManager::AGridManager()
@@ -12,6 +15,14 @@ void AGridManager::BeginPlay()
     Super::BeginPlay();
     // 시작 시 그리드 판 깔아주기
     InitializeGrid();
+
+    // Combat 오브젝트 캐싱
+    TArray<AActor*> FoundActors;
+    UGameplayStatics::GetAllActorsOfClass(
+        GetWorld(), ACombatManager::StaticClass(), FoundActors);
+
+    if (FoundActors.Num() > 0)
+        CombatManager = Cast<ACombatManager>(FoundActors[0]);
 }
 
 void AGridManager::InitializeGrid()
@@ -104,6 +115,12 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col,
         Cell->SetOccupied(Unit);
         Cell->OnUnitSpawned(Unit);
 
+
+        // 유닛에게 자신의 셀 위치 할당
+		if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
+		{
+			CardUnit->CurrentCell = Cell;
+		}
         // 델리게이트 브로드캐스트 (BP에서 바인딩 가능)
         // 유닛이 스폰이 되었을 경우에 델리게이트를 통해 소식 알리기
         OnCellStateChanged.Broadcast(Row, Col);
@@ -188,6 +205,11 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol,
     Unit->SetActorLocation(
         ToCell->GetActorLocation() + FVector(0, 0, 50.f));
 
+    if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
+    {
+        CardUnit->CurrentCell = ToCell;
+    }
+
     // 셀 상태 업데이트
     ToCell->SetOccupied(Unit);
     ToCell->OnUnitSpawned(Unit);
@@ -203,29 +225,54 @@ void AGridManager::AdvanceAllUnits(int32 MoveDirection)
 {
     if (!HasAuthority()) return;
 
+    // 람다함수( 나중에 따로 함수로 모듈화하기)
+    auto TryMoveOrFight = [&](int32 r, int32 c, int32 NextRow)
+    {
+        AGridCell* Cell = GetCell(r, c);
+        if (!Cell || Cell->IsEmpty()) return;
+
+        ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+        if (!Unit) return;
+        if (!IsValidCell(NextRow, c)) return;
+
+        AGridCell* NextCell = GetCell(NextRow, c);
+        if (NextCell->IsEmpty())
+        {
+            MoveUnit(r, c, NextRow, c);
+        }
+        else
+        {
+            ACardUnitActor* Enemy =
+                Cast<ACardUnitActor>(NextCell->OccupyingUnit);
+
+            // 서로 다른 팀(MoveDirection 반대)일 때만 전투
+            if (Enemy && CombatManager &&
+                Unit->MoveDirection != Enemy->MoveDirection)
+            {
+                CombatManager->ResolveCombat(Unit, Enemy, this);
+            }
+        }
+    };
+    // 각자 플레이어 컨트롤러의 생성방향에 맞춰서 유닛들이 생성되게끔 하기
     if (MoveDirection == -1)
     {
-        // +1 방향 유닛 높은 Row 부터 처리하도록
         for (int32 r = GridRows - 1; r >= 0; r--)
         {
             for (int32 c = 0; c < GridCols; c++)
             {
                 AGridCell* Cell = GetCell(r, c);
                 if (!Cell || Cell->IsEmpty()) continue;
-                
+
                 ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
                 if (!Unit || Unit->MoveDirection != -1) continue;
-                
+
                 int32 NextRow = r + 1;
-                if (!IsValidCell(NextRow, c)) continue;
-                
-				MoveUnit(r, c, NextRow, c);
+                TryMoveOrFight(r, c, NextRow); // 람다 호출로 교체
             }
         }
     }
     if (MoveDirection == 1)
     {
-        // +1 방향 유닛 높은 Row 부터 처리하도록
         for (int32 r = 0; r < GridRows; r++)
         {
             for (int32 c = 0; c < GridCols; c++)
@@ -237,9 +284,7 @@ void AGridManager::AdvanceAllUnits(int32 MoveDirection)
                 if (!Unit || Unit->MoveDirection != 1) continue;
 
                 int32 NextRow = r - 1;
-                if (!IsValidCell(NextRow, c)) continue;
-
-                MoveUnit(r, c, NextRow, c);
+                TryMoveOrFight(r, c, NextRow); // 람다 호출로 교체
             }
         }
     }

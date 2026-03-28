@@ -8,6 +8,7 @@
 #include "GameFramework/Actor.h"
 #include "CardUnitActor.generated.h"
 
+class AGridCell;
 UCLASS()
 class CORECLAVE_API ACardUnitActor : public AActor
 {
@@ -22,6 +23,15 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Unit Data")
 	int32 MoveDirection = 1; // +1 or -1 
+
+	// 자신이 위치한 셀 참조
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = "Grid")
+	AGridCell* CurrentCell = nullptr;
+
+	// 현재 체력 등등(나중에 사용할 게임 로직용 변수)
+	float CurrentHP;
+	float CurrentSpeed;
+
 protected:
 	
 	// 유닛의 몸체가 될 스클레탈 메시 컴포넌트
@@ -49,11 +59,9 @@ protected:
 	// 메시 로딩 로직을 따로 분리 (재사용성을 위해)
 	void LoadMeshFromID(FName CardID);
 
-	// 현재 체력 등등(나중에 사용할 게임 로직용 변수)
-	float CurrentHP;
-	float CurrentATK;
-	float CurrentSpeed;
 
+	
+	
 public:	
 	// 블루프린트에서 호출할 초기화 함수
 	UFUNCTION(BlueprintCallable, Category = "Unit Data")
