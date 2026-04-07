@@ -7,38 +7,27 @@
 #include "CombatManager.generated.h"
 
 class ACardUnitActor;
-class AGridCell;
-class AGridManager;
 
+// Combat outcome enum.
 UENUM(BlueprintType)
 enum class ECombatResult : uint8
 {
 	AttackerWins UMETA(DisplayName = "AttackerWins"),
-	DefenderWins    UMETA(DisplayName = "DefenderWins"),
-	BothDie         UMETA(DisplayName = "BothDie")
+	DefenderWins UMETA(DisplayName = "DefenderWins"),
+	BothDie UMETA(DisplayName = "BothDie")
 };
 
 UCLASS()
 class CORECLAVE_API ACombatManager : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
+
+public:
 	ACombatManager();
 
-	// 전투처리 메인 함수
-	// Attacker : 전진하는 유닛
-	// Defender : 목표 셀에 이미 존재하는 유닛
-	UFUNCTION(BlueprintCallable, Category = "Combat")
+	// Only resolves combat. The caller applies movement and removal.
 	ECombatResult ResolveCombat(
 		ACardUnitActor* Attacker,
 		ACardUnitActor* Defender,
-		AGridManager* GridManager);
-	
-	UPROPERTY()
-	ACombatManager* CombatManager = nullptr;
-private:
-	void RemoveUnit(ACardUnitActor* Unit);
-
+		float& OutWinningRemainingHP) const;
 };

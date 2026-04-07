@@ -1,4 +1,5 @@
 #pragma once
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GridType.h"
@@ -8,16 +9,16 @@ class AGridCell;
 class AUnitBase;
 class ACardUnitActor;
 class ACombatManager;
+class ABaseLaneManager;
 
 /**
- * ±◊∏ÆµÂ ¿¸√º∏¶ ∞¸∏Æ«œ¥¬ ∏≈¥œ¿˙
- * ∑π∫ßø° 1∞≥ πËƒ°
- * BPø°º≠ ¬¸¡∂«ÿº≠ «‘ºˆ »£√‚
+ * Í∑∏Î¶¨Îìú ÏÉùÏÑ±Í≥º ÏÉÅÌò∏ÏûëÏö© Í∏∞Îä• ÌÅ¥ÎûòÏä§
  */
 
-// ºø º±≈√ ¿Ã∫•∆Æ µ®∏Æ∞‘¿Ã∆Æ (BP πŸ¿Œµ˘øÎ)
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
     FOnCellStateChanged, int32, Row, int32, Col);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(
+    FOnCombatResolved, int32, AttackerRow, int32, AttackerCol, int32, DefenderRow, int32, DefenderCol, ECombatResult, Result);
 
 UCLASS()
 class CORECLAVE_API AGridManager : public AActor
@@ -31,121 +32,82 @@ protected:
     virtual void BeginPlay() override;
 
 public:
-    // ¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°
-    // ø°µ≈Õø°º≠ º≥¡§«“ ∞™µÈ
-    // ¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°
-
-    /** «‡ ºˆ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Settings")
     int32 GridRows = 4;
 
-    /** ø≠ ºˆ */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Settings")
     int32 GridCols = 4;
 
-    /** ºø ∞£∞› (æ∏ÆæÛ ¿Ø¥÷) */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Settings")
     float CellSize = 100.0f;
 
-    /** Ω∫∆˘«“ GridCell BP ≈¨∑°Ω∫ (ø°µ≈Õø°º≠ BP_GridCell ¡ˆ¡§) */
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Settings")
     TSubclassOf<AGridCell> GridCellClass;
 
-    /** ºø πËø≠ */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Rules")
+    int32 BaseDamageOnReach = 1;
+
     UPROPERTY(BlueprintReadOnly, Category = "Grid")
     TArray<AGridCell*> GridCells;
 
     UPROPERTY()
     ACombatManager* CombatManager = nullptr;
 
-    // ¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°
-    // µ®∏Æ∞‘¿Ã∆Æ (BPø°º≠ πŸ¿Œµ˘)
-    // ¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°
+    UPROPERTY()
+    ABaseLaneManager* BaseLaneManager = nullptr;
 
-    /** ºø ªÛ≈¬ ∫Ø∞Ê Ω√ ∫Í∑ŒµÂƒ≥Ω∫∆Æ */
     UPROPERTY(BlueprintAssignable, Category = "Grid|Events")
     FOnCellStateChanged OnCellStateChanged;
 
-    // ¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°
-    // «ŸΩ… «‘ºˆ (BPø°º≠ »£√‚)
-    // ¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°¶°
+    UPROPERTY(BlueprintAssignable, Category = "Grid|Events")
+    FOnCombatResolved OnCombatResolved;
 
-    /** ±◊∏ÆµÂ √ ±‚»≠ - BeginPlayø°º≠ ¿⁄µø »£√‚ */
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void InitializeGrid();
 
-    /**
-     * ∆Ø¡§ ºøø° ¿Ø¥÷ Ω∫∆˘
-     * BP µÂ∑” ¿Ã∫•∆Æø°º≠ »£√‚«“ ∏ﬁ¿Œ «‘ºˆ
-     * @param Row «‡ ¿Œµ¶Ω∫
-     * @param Col ø≠ ¿Œµ¶Ω∫
-     * @param UnitClass Ω∫∆˘«“ ¿Ø¥÷ ≈¨∑°Ω∫
-     * @return Ω∫∆˘µ» ¿Ø¥÷ (Ω«∆– Ω√ nullptr)
-     */
     UFUNCTION(BlueprintCallable, Category = "Grid")
-    AActor* SpawnUnitAtCell(int32 Row, int32 Col,
-        TSubclassOf<AActor> UnitClass);
+    AActor* SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> UnitClass);
 
-    /**
-     * ∑π¿Ãƒ≥Ω∫∆Æ »˜∆Æ ∞·∞˙∑Œ ºø √£±‚
-     * BP¿« LineTrace ∞·∞˙∏¶ ±◊¥Î∑Œ ≥—±‚∏È µ 
-     * @param HitActor ∑π¿Ãƒ≥Ω∫∆Æø° »˜∆Æµ» æ◊≈Õ
-     * @param OutCell √£¿∫ ºø (æ¯¿∏∏È nullptr)
-     */
     UFUNCTION(BlueprintCallable, Category = "Grid")
     AGridCell* GetCellFromHitActor(AActor* HitActor);
 
-    /**
-     * ø˘µÂ ¡¬«•∑Œ ºø √£±‚
-     * Deprojection ∞·∞˙∏¶ ≥—±Ê ∂ß ªÁøÎ
-     */
     UFUNCTION(BlueprintCallable, Category = "Grid")
     AGridCell* GetCellFromWorldPosition(FVector WorldPosition);
 
-    /** ºø ¿Œµ¶Ω∫∑Œ ºø ∞°¡Æø¿±‚ */
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
     AGridCell* GetCell(int32 Row, int32 Col);
 
-    /** ∆Ø¡§ ºø¿Ã ∫ÒæÓ¿÷¥¬¡ˆ »Æ¿Œ */
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
     bool IsCellEmpty(int32 Row, int32 Col) const;
 
-    /** ¿Ø»ø«— ºø ¿Œµ¶Ω∫¿Œ¡ˆ »Æ¿Œ */
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
     bool IsValidCell(int32 Row, int32 Col) const;
 
-    /** ºø ¿Œµ¶Ω∫ °Ê ø˘µÂ ¡¬«• */
     UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
     FVector GetWorldPositionFromCell(int32 Row, int32 Col) const;
 
-    /** ¿Ø¥÷ ¡¶∞≈ */
     UFUNCTION(BlueprintCallable, Category = "Grid")
     bool RemoveUnitFromCell(int32 Row, int32 Col);
 
-    /** ¿Ø¥÷ ¿Ãµø */
     UFUNCTION(BlueprintCallable, Category = "Grid")
-    bool MoveUnit(int32 FromRow, int32 FromCol,
-        int32 ToRow, int32 ToCol);
+    bool MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToCol);
 
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void AdvanceAllUnits(int32 MoveDirection);
-    
-    /**
-     * µÂ∑°±◊ ¡ﬂ «œ¿Ã∂Û¿Ã∆Æ √≥∏Æ
-     * BP PlayerController Tickø°º≠ »£√‚
-     * @param HoveredCell «ˆ¿Á ƒøº≠∞° ø√∂Û∞£ ºø
-     */
+
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void UpdateDragHighlight(AGridCell* HoveredCell);
 
-    /** ∏µÁ «œ¿Ã∂Û¿Ã∆Æ ≤Ù±‚ */
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void ClearAllHighlights();
 
 private:
     int32 GetIndex(int32 Row, int32 Col) const;
+    bool TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow);
+    bool TryResolveBaseEntry(ACardUnitActor* Unit, int32 NextRow);
+    void ResolveCombatBetweenUnits(ACardUnitActor* Attacker, ACardUnitActor* Defender);
+    void RemoveUnitActor(ACardUnitActor* Unit);
 
-    // «ˆ¿Á «œ¿Ã∂Û¿Ã∆Æµ» ºø √ﬂ¿˚
     UPROPERTY()
     AGridCell* CurrentHighlightedCell = nullptr;
 };

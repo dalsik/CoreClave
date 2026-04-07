@@ -1,9 +1,11 @@
 #include "GridManager.h"
-#include "GridCell.h"
+
+#include "BaseLaneManager.h"
 #include "CardUnitActor.h"
 #include "CombatManager.h"
-#include "Kismet/GameplayStatics.h"
+#include "GridCell.h"
 #include "Components/BoxComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AGridManager::AGridManager()
 {
@@ -13,40 +15,50 @@ AGridManager::AGridManager()
 void AGridManager::BeginPlay()
 {
     Super::BeginPlay();
-    // 시작 시 그리드 판 깔아주기
+
     InitializeGrid();
 
-    // Combat 오브젝트 캐싱
     TArray<AActor*> FoundActors;
     UGameplayStatics::GetAllActorsOfClass(
         GetWorld(), ACombatManager::StaticClass(), FoundActors);
 
     if (FoundActors.Num() > 0)
+    {
         CombatManager = Cast<ACombatManager>(FoundActors[0]);
+    }
+
+    FoundActors.Reset();
+    UGameplayStatics::GetAllActorsOfClass(
+        GetWorld(), ABaseLaneManager::StaticClass(), FoundActors);
+
+    if (FoundActors.Num() > 0)
+    {
+        BaseLaneManager = Cast<ABaseLaneManager>(FoundActors[0]);
+    }
 }
 
 void AGridManager::InitializeGrid()
 {
-    // 기존 셀 정리
     for (AGridCell* Cell : GridCells)
     {
-        if (Cell) Cell->Destroy();
+        if (Cell)
+        {
+            Cell->Destroy();
+        }
     }
     GridCells.Empty();
 
     if (!GridCellClass)
     {
-        UE_LOG(LogTemp, Warning,
-            TEXT("GridManager: GridCellClass"));
+        UE_LOG(LogTemp, Warning, TEXT("GridManager: GridCellClass"));
         return;
     }
 
-    // 4x4 셀 생성 및 배치
-    for (int32 r = 0; r < GridRows; r++)
+    for (int32 Row = 0; Row < GridRows; ++Row)
     {
-        for (int32 c = 0; c < GridCols; c++)
+        for (int32 Col = 0; Col < GridCols; ++Col)
         {
-            FVector SpawnPos = GetWorldPositionFromCell(r, c);
+            const FVector SpawnPos = GetWorldPositionFromCell(Row, Col);
             FActorSpawnParameters Params;
             Params.SpawnCollisionHandlingOverride =
                 ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -54,32 +66,27 @@ void AGridManager::InitializeGrid()
             AGridCell* Cell = GetWorld()->SpawnActor<AGridCell>(
                 GridCellClass, SpawnPos, FRotator::ZeroRotator, Params);
 
-            if (Cell)
+            if (!Cell)
             {
-                // 셀에 위치 정보 주입
-                Cell->Row = r;
-                Cell->Col = c;
-
-                // BoxCollision 크기를 CellSize에 맞게 조정
-                if (UBoxComponent* Box = Cell->FindComponentByClass<UBoxComponent>())
-                {
-                    Box->SetBoxExtent(
-                        FVector(CellSize * 0.49f, CellSize * 0.49f, 10.f));
-                }
-
-                GridCells.Add(Cell);
+                continue;
             }
+
+            Cell->Row = Row;
+            Cell->Col = Col;
+
+            if (UBoxComponent* Box = Cell->FindComponentByClass<UBoxComponent>())
+            {
+                Box->SetBoxExtent(
+                    FVector(CellSize * 0.49f, CellSize * 0.49f, 10.0f));
+            }
+
+            GridCells.Add(Cell);
         }
     }
-
-    //UE_LOG(LogTemp, Log,
-        //TEXT("GridManager: %d개 셀 초기화 완료"), GridCells.Num());
 }
 
-AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col,
-    TSubclassOf<AActor> UnitClass)
+AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> UnitClass)
 {
-    // 유효성 검사
     if (!UnitClass)
     {
         UE_LOG(LogTemp, Warning, TEXT("SpawnUnitAtCell: UnitClass."));
@@ -87,21 +94,22 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col,
     }
     if (!IsValidCell(Row, Col))
     {
-        UE_LOG(LogTemp, Warning,TEXT("SpawnUnitAtCell: [%d, %d]"), Row, Col);
+        UE_LOG(LogTemp, Warning, TEXT("SpawnUnitAtCell: [%d, %d]"), Row, Col);
         return nullptr;
     }
     if (!IsCellEmpty(Row, Col))
     {
-        UE_LOG(LogTemp, Warning,TEXT("SpawnUnitAtCell: [%d, %d]"), Row, Col);
+        UE_LOG(LogTemp, Warning, TEXT("SpawnUnitAtCell: [%d, %d]"), Row, Col);
         return nullptr;
     }
 
-    // 해당 Row,Col에 해당하는 Cell의 인덱스를 찾아서 Cell에 할당한다
     AGridCell* Cell = GetCell(Row, Col);
-    if (!Cell) return nullptr;
+    if (!Cell)
+    {
+        return nullptr;
+    }
 
-    // 유닛을 셀 위치에 스폰 (Z 오프셋으로 바닥 위에 올림)
-    FVector SpawnPos = Cell->GetActorLocation() + FVector(0, 0, 10.f);
+    const FVector SpawnPos = Cell->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f);
     FActorSpawnParameters Params;
     Params.SpawnCollisionHandlingOverride =
         ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -109,51 +117,53 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col,
     AActor* Unit = GetWorld()->SpawnActor<AActor>(
         UnitClass, SpawnPos, FRotator::ZeroRotator, Params);
 
-    if (Unit)
+    if (!Unit)
     {
-        // 셀 상태 업데이트(해당 타일에게 점유되어 있다고 상태를 업데이트 하기)
-        Cell->SetOccupied(Unit);
-        Cell->OnUnitSpawned(Unit);
-
-
-        // 유닛에게 자신의 셀 위치 할당
-		if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
-		{
-			CardUnit->CurrentCell = Cell;
-		}
-        // 델리게이트 브로드캐스트 (BP에서 바인딩 가능)
-        // 유닛이 스폰이 되었을 경우에 델리게이트를 통해 소식 알리기
-        OnCellStateChanged.Broadcast(Row, Col);
+        return nullptr;
     }
 
+    Cell->SetOccupied(Unit);
+    Cell->OnUnitSpawned(Unit);
+
+    if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
+    {
+        CardUnit->CurrentCell = Cell;
+    }
+
+    OnCellStateChanged.Broadcast(Row, Col);
     return Unit;
 }
 
 AGridCell* AGridManager::GetCellFromHitActor(AActor* HitActor)
 {
-    // 레이캐스트로 히트된 액터가 GridCell인지 확인
     return Cast<AGridCell>(HitActor);
 }
 
 AGridCell* AGridManager::GetCellFromWorldPosition(FVector WorldPosition)
 {
-    // 월드 좌표 → 셀 인덱스 계산
-    FVector LocalPos = WorldPosition - GetActorLocation();
-    int32 Col = FMath::RoundToInt(LocalPos.X / CellSize);
-    int32 Row = FMath::RoundToInt(LocalPos.Y / CellSize);
+    const FVector LocalPos = WorldPosition - GetActorLocation();
+    const int32 Col = FMath::RoundToInt(LocalPos.X / CellSize);
+    const int32 Row = FMath::RoundToInt(LocalPos.Y / CellSize);
 
     return GetCell(Row, Col);
 }
 
 AGridCell* AGridManager::GetCell(int32 Row, int32 Col)
 {
-    if (!IsValidCell(Row, Col)) return nullptr;
+    if (!IsValidCell(Row, Col))
+    {
+        return nullptr;
+    }
     return GridCells[GetIndex(Row, Col)];
 }
 
 bool AGridManager::IsCellEmpty(int32 Row, int32 Col) const
 {
-    if (!IsValidCell(Row, Col)) return false;
+    if (!IsValidCell(Row, Col))
+    {
+        return false;
+    }
+
     AGridCell* Cell = GridCells[GetIndex(Row, Col)];
     return Cell && Cell->IsEmpty();
 }
@@ -166,51 +176,64 @@ bool AGridManager::IsValidCell(int32 Row, int32 Col) const
 
 FVector AGridManager::GetWorldPositionFromCell(int32 Row, int32 Col) const
 {
-    FVector Origin = GetActorLocation();
+    const FVector Origin = GetActorLocation();
     return FVector(
         Origin.X + (Row * CellSize),
         Origin.Y + (Col * CellSize),
-        Origin.Z
-    );
+        Origin.Z);
 }
 
 bool AGridManager::RemoveUnitFromCell(int32 Row, int32 Col)
 {
     AGridCell* Cell = GetCell(Row, Col);
-    if (!Cell || Cell->IsEmpty()) return false;
+    if (!Cell || Cell->IsEmpty())
+    {
+        return false;
+    }
+
+    if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Cell->OccupyingUnit))
+    {
+        RemoveUnitActor(CardUnit);
+        return true;
+    }
 
     if (Cell->OccupyingUnit)
     {
         Cell->OccupyingUnit->Destroy();
+        Cell->ClearCell();
     }
-    Cell->ClearCell();
+
     OnCellStateChanged.Broadcast(Row, Col);
     return true;
 }
 
-bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol,
-    int32 ToRow, int32 ToCol)
+bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToCol)
 {
-    if (!IsValidCell(FromRow, FromCol)) return false;
-    if (!IsCellEmpty(ToRow, ToCol)) return false;
+    if (!IsValidCell(FromRow, FromCol) || !IsCellEmpty(ToRow, ToCol))
+    {
+        return false;
+    }
 
     AGridCell* FromCell = GetCell(FromRow, FromCol);
     AGridCell* ToCell = GetCell(ToRow, ToCol);
-    if (!FromCell || !ToCell) return false;
+    if (!FromCell || !ToCell)
+    {
+        return false;
+    }
 
     AActor* Unit = FromCell->OccupyingUnit;
-    if (!Unit) return false;
+    if (!Unit)
+    {
+        return false;
+    }
 
-    // 유닛 이동
-    Unit->SetActorLocation(
-        ToCell->GetActorLocation() + FVector(0, 0, 50.f));
+    Unit->SetActorLocation(ToCell->GetActorLocation() + FVector(0.0f, 0.0f, 50.0f));
 
     if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
     {
         CardUnit->CurrentCell = ToCell;
     }
 
-    // 셀 상태 업데이트
     ToCell->SetOccupied(Unit);
     ToCell->OnUnitSpawned(Unit);
     FromCell->ClearCell();
@@ -220,90 +243,70 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol,
     return true;
 }
 
-// 유닛들을 앞에라인부터 움직이도록 하게 해주는 함수
 void AGridManager::AdvanceAllUnits(int32 MoveDirection)
 {
-    if (!HasAuthority()) return;
-
-    // 람다함수( 나중에 따로 함수로 모듈화하기)
-    auto TryMoveOrFight = [&](int32 r, int32 c, int32 NextRow)
+    if (!HasAuthority())
     {
-        AGridCell* Cell = GetCell(r, c);
-        if (!Cell || Cell->IsEmpty()) return;
+        return;
+    }
 
-        ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
-        if (!Unit) return;
-        if (!IsValidCell(NextRow, c)) return;
-
-        AGridCell* NextCell = GetCell(NextRow, c);
-        if (NextCell->IsEmpty())
-        {
-            MoveUnit(r, c, NextRow, c);
-        }
-        else
-        {
-            ACardUnitActor* Enemy =
-                Cast<ACardUnitActor>(NextCell->OccupyingUnit);
-
-            // 서로 다른 팀(MoveDirection 반대)일 때만 전투
-            if (Enemy && CombatManager &&
-                Unit->MoveDirection != Enemy->MoveDirection)
-            {
-                CombatManager->ResolveCombat(Unit, Enemy, this);
-            }
-        }
-    };
-    // 각자 플레이어 컨트롤러의 생성방향에 맞춰서 유닛들이 생성되게끔 하기
     if (MoveDirection == -1)
     {
-        for (int32 r = GridRows - 1; r >= 0; r--)
+        for (int32 Row = GridRows - 1; Row >= 0; --Row)
         {
-            for (int32 c = 0; c < GridCols; c++)
+            for (int32 Col = 0; Col < GridCols; ++Col)
             {
-                AGridCell* Cell = GetCell(r, c);
-                if (!Cell || Cell->IsEmpty()) continue;
+                AGridCell* Cell = GetCell(Row, Col);
+                if (!Cell || Cell->IsEmpty())
+                {
+                    continue;
+                }
 
                 ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
-                if (!Unit || Unit->MoveDirection != -1) continue;
+                if (!Unit || Unit->MoveDirection != -1)
+                {
+                    continue;
+                }
 
-                int32 NextRow = r + 1;
-                TryMoveOrFight(r, c, NextRow); // 람다 호출로 교체
+                TryAdvanceUnitFromCell(Row, Col, Row + 1);
             }
         }
     }
+
     if (MoveDirection == 1)
     {
-        for (int32 r = 0; r < GridRows; r++)
+        for (int32 Row = 0; Row < GridRows; ++Row)
         {
-            for (int32 c = 0; c < GridCols; c++)
+            for (int32 Col = 0; Col < GridCols; ++Col)
             {
-                AGridCell* Cell = GetCell(r, c);
-                if (!Cell || Cell->IsEmpty()) continue;
+                AGridCell* Cell = GetCell(Row, Col);
+                if (!Cell || Cell->IsEmpty())
+                {
+                    continue;
+                }
 
                 ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
-                if (!Unit || Unit->MoveDirection != 1) continue;
+                if (!Unit || Unit->MoveDirection != 1)
+                {
+                    continue;
+                }
 
-                int32 NextRow = r - 1;
-                TryMoveOrFight(r, c, NextRow); // 람다 호출로 교체
+                TryAdvanceUnitFromCell(Row, Col, Row - 1);
             }
         }
     }
 }
 
-
 void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell)
 {
-    // 이전 하이라이트 끄기
-    if (CurrentHighlightedCell &&
-        CurrentHighlightedCell != HoveredCell)
+    if (CurrentHighlightedCell && CurrentHighlightedCell != HoveredCell)
     {
         CurrentHighlightedCell->SetHighlight(false, false);
     }
 
-    // 새 셀 하이라이트
     if (HoveredCell)
     {
-        bool bCanPlace = HoveredCell->IsEmpty();
+        const bool bCanPlace = HoveredCell->IsEmpty();
         HoveredCell->SetHighlight(true, bCanPlace);
         CurrentHighlightedCell = HoveredCell;
     }
@@ -311,16 +314,154 @@ void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell)
 
 void AGridManager::ClearAllHighlights()
 {
-    // 모든 하이라이트 된 셀 제거하기
     for (AGridCell* Cell : GridCells)
     {
-        if (Cell) Cell->SetHighlight(false, false);
+        if (Cell)
+        {
+            Cell->SetHighlight(false, false);
+        }
     }
     CurrentHighlightedCell = nullptr;
 }
 
 int32 AGridManager::GetIndex(int32 Row, int32 Col) const
 {
-    // 우리는 행/열로 생각하지만 인덱스를 반환해야 하므로 인덱스 계산 로직
     return Row * GridCols + Col;
+}
+
+bool AGridManager::TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow)
+{
+    AGridCell* Cell = GetCell(Row, Col);
+    if (!Cell || Cell->IsEmpty())
+    {
+        return false;
+    }
+
+    ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+    if (!Unit)
+    {
+        return false;
+    }
+
+    if (!IsValidCell(NextRow, Col))
+    {
+        return TryResolveBaseEntry(Unit, NextRow);
+    }
+
+    AGridCell* NextCell = GetCell(NextRow, Col);
+    if (!NextCell)
+    {
+        return false;
+    }
+
+    if (NextCell->IsEmpty())
+    {
+        return MoveUnit(Row, Col, NextRow, Col);
+    }
+
+    ACardUnitActor* Enemy = Cast<ACardUnitActor>(NextCell->OccupyingUnit);
+    if (!Enemy || !CombatManager || Unit->MoveDirection == Enemy->MoveDirection)
+    {
+        return false;
+    }
+
+    ResolveCombatBetweenUnits(Unit, Enemy);
+    return true;
+}
+
+// 유닛이 상대방의 영역에 들어가면 피해를 입히고 해당 유닛 삭제해버림
+bool AGridManager::TryResolveBaseEntry(ACardUnitActor* Unit, int32 NextRow)
+{
+    if (!Unit || !BaseLaneManager)
+    {
+        return false;
+    }
+
+    const bool bReachedTopBase = (Unit->MoveDirection == 1 && NextRow < 0);
+    const bool bReachedBottomBase = (Unit->MoveDirection == -1 && NextRow >= GridRows);
+    if (!bReachedTopBase && !bReachedBottomBase)
+    {
+        return false;
+    }
+
+    int32 RemainingBaseHealth = 0;
+    const bool bAppliedDamage = BaseLaneManager->ApplyBaseDamageByMoveDirection(
+        Unit->MoveDirection,
+        BaseDamageOnReach,
+        RemainingBaseHealth);
+
+    if (!bAppliedDamage)
+    {
+        return false;
+    }
+
+    RemoveUnitActor(Unit);
+    return true;
+}
+
+void AGridManager::ResolveCombatBetweenUnits(ACardUnitActor* Attacker, ACardUnitActor* Defender)
+{
+    if (!Attacker || !Defender || !CombatManager)
+    {
+        return;
+    }
+
+    AGridCell* AttackerCell = Attacker->CurrentCell;
+    AGridCell* DefenderCell = Defender->CurrentCell;
+    if (!AttackerCell || !DefenderCell)
+    {
+        return;
+    }
+
+    const int32 AttackerRow = AttackerCell->Row;
+    const int32 AttackerCol = AttackerCell->Col;
+    const int32 DefenderRow = DefenderCell->Row;
+    const int32 DefenderCol = DefenderCell->Col;
+
+    float WinningRemainingHP = 0.0f;
+    const ECombatResult Result =
+        CombatManager->ResolveCombat(Attacker, Defender, WinningRemainingHP);
+
+    if (Result == ECombatResult::AttackerWins)
+    {
+        Attacker->CurrentHP = WinningRemainingHP;
+        RemoveUnitActor(Defender);
+        MoveUnit(AttackerRow, AttackerCol, DefenderRow, DefenderCol);
+    }
+    else if (Result == ECombatResult::DefenderWins)
+    {
+        Defender->CurrentHP = WinningRemainingHP;
+        RemoveUnitActor(Attacker);
+    }
+    else
+    {
+        RemoveUnitActor(Attacker);
+        RemoveUnitActor(Defender);
+    }
+
+    OnCombatResolved.Broadcast(
+        AttackerRow, AttackerCol,
+        DefenderRow, DefenderCol,
+        Result);
+}
+
+void AGridManager::RemoveUnitActor(ACardUnitActor* Unit)
+{
+    if (!Unit)
+    {
+        return;
+    }
+
+    AGridCell* OccupiedCell = Unit->CurrentCell;
+    if (OccupiedCell)
+    {
+        const int32 Row = OccupiedCell->Row;
+        const int32 Col = OccupiedCell->Col;
+
+        OccupiedCell->ClearCell();
+        Unit->CurrentCell = nullptr;
+        OnCellStateChanged.Broadcast(Row, Col);
+    }
+
+    Unit->Destroy();
 }
