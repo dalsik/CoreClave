@@ -1,4 +1,4 @@
-#include "GridManager.h"
+ï»¿#include "GridManager.h"
 
 #include "BaseLaneManager.h"
 #include "CardUnitActor.h"
@@ -16,12 +16,14 @@ void AGridManager::BeginPlay()
 {
     Super::BeginPlay();
 
+    // ê·¸ë¦¬ë“œ ìƒì„±
     InitializeGrid();
 
     TArray<AActor*> FoundActors;
     UGameplayStatics::GetAllActorsOfClass(
         GetWorld(), ACombatManager::StaticClass(), FoundActors);
 
+    // CombatManager ìºì‹±
     if (FoundActors.Num() > 0)
     {
         CombatManager = Cast<ACombatManager>(FoundActors[0]);
@@ -31,6 +33,7 @@ void AGridManager::BeginPlay()
     UGameplayStatics::GetAllActorsOfClass(
         GetWorld(), ABaseLaneManager::StaticClass(), FoundActors);
 
+    // BaseLaneManager ìºì‹±
     if (FoundActors.Num() > 0)
     {
         BaseLaneManager = Cast<ABaseLaneManager>(FoundActors[0]);
@@ -141,9 +144,21 @@ AGridCell* AGridManager::GetCellFromHitActor(AActor* HitActor)
 
 AGridCell* AGridManager::GetCellFromWorldPosition(FVector WorldPosition)
 {
-    const FVector LocalPos = WorldPosition - GetActorLocation();
-    const int32 Col = FMath::RoundToInt(LocalPos.X / CellSize);
-    const int32 Row = FMath::RoundToInt(LocalPos.Y / CellSize);
+    const FVector Origin = GetActorLocation();
+
+    const float TotalWidth = GridRows * CellSize;
+    const float TotalHeight = GridCols * CellSize;
+
+    const float StartX = Origin.X - (TotalWidth * 0.5f);
+    const float StartY = Origin.Y - (TotalHeight * 0.5f);
+
+    const int32 Row = FMath::FloorToInt((WorldPosition.X - StartX) / CellSize);
+    const int32 Col = FMath::FloorToInt((WorldPosition.Y - StartY) / CellSize);
+
+    if (!IsValidCell(Row, Col))
+    {
+        return nullptr;
+    }
 
     return GetCell(Row, Col);
 }
@@ -177,9 +192,16 @@ bool AGridManager::IsValidCell(int32 Row, int32 Col) const
 FVector AGridManager::GetWorldPositionFromCell(int32 Row, int32 Col) const
 {
     const FVector Origin = GetActorLocation();
+
+    const float TotalWidth = GridRows * CellSize;
+    const float TotalHeight = GridCols * CellSize;
+
+    const float StartX = Origin.X - (TotalWidth * 0.5f) + (CellSize * 0.5f);
+    const float StartY = Origin.Y - (TotalHeight * 0.5f) + (CellSize * 0.5f);
+
     return FVector(
-        Origin.X + (Row * CellSize),
-        Origin.Y + (Col * CellSize),
+        StartX + (Row * CellSize),
+        StartY + (Col * CellSize),
         Origin.Z);
 }
 
@@ -369,7 +391,7 @@ bool AGridManager::TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow)
     return true;
 }
 
-// À¯´ÖÀÌ »ó´ë¹æÀÇ ¿µ¿ª¿¡ µé¾î°¡¸é ÇÇÇØ¸¦ ÀÔÈ÷°í ÇØ´ç À¯´Ö »èÁ¦ÇØ¹ö¸²
+// ìœ ë‹›ì´ ìƒëŒ€ë°©ì˜ ì˜ì—­ì— ë“¤ì–´ê°€ë©´ í”¼í•´ë¥¼ ì…íˆê³  í•´ë‹¹ ìœ ë‹› ì‚­ì œí•´ë²„ë¦¼
 bool AGridManager::TryResolveBaseEntry(ACardUnitActor* Unit, int32 NextRow)
 {
     if (!Unit || !BaseLaneManager)
@@ -465,3 +487,4 @@ void AGridManager::RemoveUnitActor(ACardUnitActor* Unit)
 
     Unit->Destroy();
 }
+

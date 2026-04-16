@@ -7,16 +7,18 @@ AActionPointManager::AActionPointManager()
 }
 
 void AActionPointManager::RollActionPoints(
-	int32 InStoredActionPoints,
+	int32 InStoredActionPoints, 
 	int32& OutCurrentActionPoints,
 	int32& OutStoredActionPoints,
 	int32& OutLastRollResult) const
 {
 	// 저장 AP는 규칙 최대치까지만 반영한다.
+	// LastRollResult는 이번 턴에 굴린 AP 주사위 결과를 나타내며, 다음 턴에 저장되지 않는다.
+	// 최대 2AP까지 획득 가능
 	const int32 ClampedStoredActionPoints =
 		FMath::Clamp(InStoredActionPoints, 0, MaxStoredActionPoints);
 
-	OutLastRollResult = FMath::RandRange(ActionPointRollMin, ActionPointRollMax);
+	OutLastRollResult = FMath::RandRange(ActionPointRollMin, ActionPointRollMax); // 1~3 사이 무작위 값 
 	OutCurrentActionPoints = BaseActionPoints + ClampedStoredActionPoints + OutLastRollResult;
 	OutStoredActionPoints = 0;
 }
@@ -38,6 +40,7 @@ bool AActionPointManager::SpendActionPoints(
 	return true;
 }
 
+// 사용하지 않은 AP는 저장해둔다.
 void AActionPointManager::BankRemainingActionPoints(
 	int32 InCurrentActionPoints,
 	int32& OutStoredActionPoints,
@@ -48,6 +51,7 @@ void AActionPointManager::BankRemainingActionPoints(
 	OutRemainingActionPoints = 0;
 }
 
+// 카드 버렸을 시 AP획득 호출 로직
 int32 AActionPointManager::AddActionPoints(int32 InCurrentActionPoints, int32 Amount) const
 {
 	if (Amount <= 0)
@@ -57,6 +61,7 @@ int32 AActionPointManager::AddActionPoints(int32 InCurrentActionPoints, int32 Am
 
 	return InCurrentActionPoints + Amount;
 }
+
 
 int32 AActionPointManager::GetDiscardCardActionPointGain() const
 {
