@@ -27,7 +27,7 @@ class CORECLAVE_API AGridManager : public AActor
 
 public:
     AGridManager();
-
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 protected:
     virtual void BeginPlay() override;
 
@@ -47,7 +47,8 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Rules")
     int32 BaseDamageOnReach = 1;
 
-    UPROPERTY(BlueprintReadOnly, Category = "Grid")
+	// 클라이언트1도 GridCells 정보를 알 수 있도록 Replicated 설정
+    UPROPERTY(BlueprintReadOnly, Category = "Grid", Replicated)
     TArray<AGridCell*> GridCells;
 
     UPROPERTY()

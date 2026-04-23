@@ -6,10 +6,12 @@
 #include "GridCell.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Net/UnrealNetwork.h"
 
 AGridManager::AGridManager()
 {
     PrimaryActorTick.bCanEverTick = false;
+    bReplicates = true;
 }
 
 void AGridManager::BeginPlay()
@@ -40,8 +42,14 @@ void AGridManager::BeginPlay()
     }
 }
 
+void AGridManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AGridManager, GridCells);
+}
 void AGridManager::InitializeGrid()
 {
+    if (!HasAuthority()) return; // 서버에서만 스폰되도록 설정
     for (AGridCell* Cell : GridCells)
     {
         if (Cell)

@@ -19,8 +19,8 @@ void AActionPointManager::RollActionPoints(
 		FMath::Clamp(InStoredActionPoints, 0, MaxStoredActionPoints);
 
 	OutLastRollResult = FMath::RandRange(ActionPointRollMin, ActionPointRollMax); // 1~3 사이 무작위 값 
-	OutCurrentActionPoints = BaseActionPoints + ClampedStoredActionPoints + OutLastRollResult;
-	OutStoredActionPoints = 0;
+	OutCurrentActionPoints = BaseActionPoints + ClampedStoredActionPoints + OutLastRollResult; // 기본값 + 저장된 값 + 리롤된 랜덤 값
+	OutStoredActionPoints = 0; // 저장 AP까지 합친거니까 0으로 초기화
 }
 
 // 특정 코스트만큼 ActionPoint를 사용
