@@ -49,9 +49,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Preview")
 	TArray<UMaterialInterface*> PreviewMaterials;
 
-	UFUNCTION(BlueprintCallable, Category = "Preview")
-	void SetPreviewMode(bool bEnable);
-
 	// 클라이언트가 CardID를 받으면 자동으로 실행할 함수
 	UFUNCTION()
 	void OnRep_CardID();
@@ -59,15 +56,21 @@ protected:
 	// 메시 로딩 로직을 따로 분리 (재사용성을 위해)
 	void LoadMeshFromID(FName CardID);
 
-
-	
-	
 public:	
 	// 블루프린트에서 호출할 초기화 함수
 	UFUNCTION(BlueprintCallable, Category = "Unit Data")
 	void InitializeUnit(FName CardID);
 
+	UFUNCTION(BlueprintCallable, Category = "Preview")
+	void SetPreviewMode(bool bEnable);
+
 private:
 	// 비동기 로딩이 끝났을 때 실행될 콜 백 함수
 	void OnMeshLoaded(TSoftObjectPtr<USkeletalMesh> LoadedMeshAsset);
+
+	UPROPERTY()
+	TArray<UMaterialInterface*> OriginalMaterials;
+
+	UPROPERTY()
+	bool bIsPreviewMode = false;
 };

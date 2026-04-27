@@ -46,6 +46,8 @@ void AGridManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	DOREPLIFETIME(AGridManager, GridCells);
+    DOREPLIFETIME(AGridManager, CachedFrontlineRow_Dir1);
+	DOREPLIFETIME(AGridManager, CachedFrontlineRow_DirMinus1);
 }
 void AGridManager::InitializeGrid()
 {
@@ -142,6 +144,7 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> 
     }
 
     OnCellStateChanged.Broadcast(Row, Col);
+    UpdateFrontlineCache(); // 최전선 라인 갱신
     return Unit;
 }
 
@@ -325,9 +328,10 @@ void AGridManager::AdvanceAllUnits(int32 MoveDirection)
             }
         }
     }
+    UpdateFrontlineCache();
 }
 
-void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell)
+void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell, int32 MoveDirection)
 {
     if (CurrentHighlightedCell && CurrentHighlightedCell != HoveredCell)
     {
@@ -336,7 +340,12 @@ void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell)
 
     if (HoveredCell)
     {
-        const bool bCanPlace = HoveredCell->IsEmpty();
+        // 해당 Row와 Col, 플레이어의 MoveDirection 변수를 확인하고 배치가능한 타일인지 확인한다.
+        const bool bCanPlace = IsPlaceableCell(
+            HoveredCell->Row,
+            HoveredCell->Col,
+            MoveDirection);
+
         HoveredCell->SetHighlight(true, bCanPlace);
         CurrentHighlightedCell = HoveredCell;
     }
@@ -494,5 +503,146 @@ void AGridManager::RemoveUnitActor(ACardUnitActor* Unit)
     }
 
     Unit->Destroy();
+    UpdateFrontlineCache();
 }
 
+// 시각적 피드백을 위한 프리뷰 생성 로직
+void AGridManager::UpdateUnitPreview(AGridCell* HoveredCell, TSubclassOf<ACardUnitActor> UnitClass, FName CardID, int32 MoveDirection)
+{
+    if (!HoveredCell || !UnitClass)
+    {
+        UE_LOG(LogTemp, Warning, TEXT("HoveredCell: %s, UnitClass: %s"),
+            HoveredCell ? TEXT("Valid") : TEXT("NULL"),
+            UnitClass ? TEXT("Valid") : TEXT("NULL"));
+        return;
+    }
+
+    const bool bCanPlace = IsPlaceableCell(
+        HoveredCell->Row,
+        HoveredCell->Col,
+        MoveDirection);
+
+    if (!bCanPlace)
+    {
+        if (PreviewUnitActor)
+        {
+			PreviewUnitActor->SetActorHiddenInGame(true);
+        }
+        CurrentPreviewCell = HoveredCell;
+        return;
+    }
+
+    if (!PreviewUnitActor)
+    {
+		FActorSpawnParameters Params;
+		Params.SpawnCollisionHandlingOverride =
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+        PreviewUnitActor = GetWorld()->SpawnActor<ACardUnitActor>(
+            UnitClass,
+            HoveredCell->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f),
+            FRotator(0.0f, MoveDirection * 90.0f, 0.0f),
+            Params
+        );
+
+        if(!PreviewUnitActor)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to spawn preview unit."));
+			return;
+		}   
+
+        PreviewUnitActor->SetReplicates(false);
+        PreviewUnitActor->SetPreviewMode(true);
+    }
+    
+    if (CurrentPreviewCardID != CardID)
+    {
+        PreviewUnitActor->InitializeUnit(CardID);
+		CurrentPreviewCardID = CardID;
+    }
+
+	PreviewUnitActor->SetActorHiddenInGame(false);
+	PreviewUnitActor->SetActorLocation(HoveredCell->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f));
+    CurrentPreviewCell = HoveredCell;
+}
+
+// 프리뷰용 액터 제거
+void AGridManager::ClearUnitPreview()
+{
+    if (PreviewUnitActor)
+    {
+        PreviewUnitActor->Destroy();
+        PreviewUnitActor = nullptr;
+    }
+    CurrentPreviewCell = nullptr;
+    CurrentPreviewCardID = NAME_None;
+}
+
+// 해당 셀이 가능한지 확인하는 로직
+bool AGridManager::IsPlaceableCell(int32 Row, int32 Col, int32 MoveDirection) const
+{
+    // 유효한 셀인지 확인
+    if (!IsValidCell(Row, Col)) return false;
+
+    // 비어있는지 확인
+    if (!IsCellEmpty(Row, Col)) return false;
+
+    const int32 FrontlineRow = GetFrontlineRow(MoveDirection);
+
+    UE_LOG(LogTemp, Warning,
+        TEXT("IsPlaceableCell: Row=%d, Col=%d, MoveDir=%d, FrontlineRow=%d, GridRows=%d"),
+        Row, Col, MoveDirection, FrontlineRow, GridRows);
+
+
+    if (MoveDirection == 1)
+    {
+        // 위로 이동: FrontlineRow ~ GridRows-1 사이에 배치 가능
+        return Row >= FrontlineRow && Row <= GridRows - 1;
+    }
+    else // MoveDirection == -1
+    {
+        // 아래로 이동: 0 ~ FrontlineRow 사이에 배치 가능
+        return Row >= 0 && Row <= FrontlineRow;
+    }
+}
+
+void AGridManager::UpdateFrontlineCache()
+{
+    // MoveDirection 1 최전선
+    CachedFrontlineRow_Dir1 = GridRows - 1;
+    for (int32 Row = 0; Row < GridRows; ++Row)
+        for (int32 Col = 0; Col < GridCols; ++Col)
+        {
+            AGridCell* Cell = GridCells[GetIndex(Row, Col)];
+            if (!Cell || Cell->IsEmpty()) continue;
+            ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+            if (!Unit || Unit->MoveDirection != 1) continue;
+            CachedFrontlineRow_Dir1 = FMath::Min(
+                CachedFrontlineRow_Dir1, Row);
+        }
+
+    // MoveDirection -1 최전선
+    CachedFrontlineRow_DirMinus1 = 0;
+    for (int32 Row = GridRows - 1; Row >= 0; --Row)
+        for (int32 Col = 0; Col < GridCols; ++Col)
+        {
+            AGridCell* Cell = GridCells[GetIndex(Row, Col)];
+            if (!Cell || Cell->IsEmpty()) continue;
+            ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+            if (!Unit || Unit->MoveDirection != -1) continue;
+            CachedFrontlineRow_DirMinus1 = FMath::Max(
+                CachedFrontlineRow_DirMinus1, Row);
+        }
+
+    bFrontlineDirty = false;
+}
+
+// 플레이어의 입장에서 가장 최전선에 있는 유닛의 Row를 반환
+int32 AGridManager::GetFrontlineRow(int32 MoveDirection) const
+{
+    // 캐시 사용 (순회 없음)
+    if (MoveDirection == 1)
+        return CachedFrontlineRow_Dir1;
+    else
+        return CachedFrontlineRow_DirMinus1;
+}

@@ -96,12 +96,29 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void AdvanceAllUnits(int32 MoveDirection);
 
+    /// <summary>
+    ///  하이라이트 및 프리뷰 유닛
+    /// </summary>
     UFUNCTION(BlueprintCallable, Category = "Grid")
-    void UpdateDragHighlight(AGridCell* HoveredCell);
+    void UpdateDragHighlight(AGridCell* HoveredCell, int32 MoveDirection);
 
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void ClearAllHighlights();
 
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void UpdateUnitPreview(AGridCell* HoveredCell, TSubclassOf<ACardUnitActor> PreviewUnit, FName CardID, int32 MoveDirection);
+
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void ClearUnitPreview();
+
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
+    int32 GetFrontlineRow(int32 MoveDirection) const;
+
+    UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Grid")
+    bool IsPlaceableCell(int32 Row, int32 Col, int32 MoveDirection) const;
+
+    UFUNCTION(BlueprintCallable, Category = "Grid")
+    void UpdateFrontlineCache();
 private:
     int32 GetIndex(int32 Row, int32 Col) const;
     bool TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow);
@@ -109,6 +126,28 @@ private:
     void ResolveCombatBetweenUnits(ACardUnitActor* Attacker, ACardUnitActor* Defender);
     void RemoveUnitActor(ACardUnitActor* Unit);
 
+    /// <summary>
+    /// 최전선을 파악하기 위한 캐시 변수들
+    /// <summary>
+    UPROPERTY(Replicated)
+	int32 CachedFrontlineRow_Dir1 = 6; // MoveDirection+1 플레이어
+    UPROPERTY(Replicated)
+	int32 CachedFrontlineRow_DirMinus1 = 0; // MoveDirection-1 플레이어
+    bool bFrontlineDirty = true; // 갱신 필요 여부
+
+    /// <summary>
+    /// 프리뷰 유닛을 위한 변수들
+    /// </summary>
+    UPROPERTY()
+    ACardUnitActor* PreviewUnitActor = nullptr;
+
+    UPROPERTY()
+    AGridCell* CurrentPreviewCell = nullptr;
+   
     UPROPERTY()
     AGridCell* CurrentHighlightedCell = nullptr;
+
+    UPROPERTY()
+    FName CurrentPreviewCardID;
+
 };

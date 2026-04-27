@@ -107,15 +107,34 @@ void ACardUnitActor::OnMeshLoaded(TSoftObjectPtr<USkeletalMesh> LoadedMeshAsset)
 
 void ACardUnitActor::SetPreviewMode(bool bEnable)
 {
-	if (!MainMesh) return;
+	if (!MainMesh)
+	{
+		return;
+	}
+
+	if (bIsPreviewMode == bEnable)
+	{
+		return;
+	}
+
+	bIsPreviewMode = bEnable;
 
 	if (bEnable)
 	{
-		// 레이캐스트에 안걸리도록 충돌 비활성화
+		OriginalMaterials.Empty();
+
+		const int32 MaterialCount = MainMesh->GetNumMaterials();
+		for (int32 i = 0; i < MaterialCount; ++i)
+		{
+			OriginalMaterials.Add(MainMesh->GetMaterial(i));
+		}
+
+		// 프리뷰는 클릭/배치 판정 방해하지 않게 충돌 끔
 		MainMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		
-		// 프리뷰 머터리얼로 교체
-		for (int32 i = 0; i < PreviewMaterials.Num(); i++)
+		SetActorEnableCollision(false);
+
+		// 반투명/초록 프리뷰 머터리얼 적용
+		for (int32 i = 0; i < MaterialCount && i < PreviewMaterials.Num(); ++i)
 		{
 			if (PreviewMaterials[i])
 			{
@@ -125,7 +144,17 @@ void ACardUnitActor::SetPreviewMode(bool bEnable)
 	}
 	else
 	{
-		// 충돌 복구
+		// 원래 머터리얼 복구
+		for (int32 i = 0; i < OriginalMaterials.Num(); ++i)
+		{
+			if (OriginalMaterials[i])
+			{
+				MainMesh->SetMaterial(i, OriginalMaterials[i]);
+			}
+		}
+
+		// 실제 유닛 상태로 복구
 		MainMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		SetActorEnableCollision(true);
 	}
 }
