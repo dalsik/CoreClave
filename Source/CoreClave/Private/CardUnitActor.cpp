@@ -10,6 +10,7 @@
 // Sets default values
 ACardUnitActor::ACardUnitActor()
 {
+	PrimaryActorTick.bCanEverTick = true;
 	// 기본 컴포넌트 생성(몸체 만들기)
 	MainMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MainMesh"));
 	RootComponent = MainMesh;
@@ -28,6 +29,30 @@ void ACardUnitActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME(ACardUnitActor, MoveDirection);
 	// 자신의 셀을 레플리케이션 목록에 등록
 	DOREPLIFETIME(ACardUnitActor, CurrentCell);
+}
+
+void ACardUnitActor::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// 움직이지 않고 있으면 리턴해라.
+	if (!bIsMoving) return;
+
+	// MoveElapsed는 누적시간이므로, 매 프레임마다 DeltaTime을 더해준다.
+	MoveElapsed += DeltaTime;
+	const float Alpha = FMath::Clamp(MoveElapsed / MoveDuration, 0.0f, 1.0f); // Elapsed를 Duration으로 나누서 퍼센트로 사용
+
+	// EaseInOut으로 자연스럽게 적용
+	const float EasedAlpha = FMath::InterpEaseInOut(0.0f, 1.0f, Alpha, 2.0);
+	SetActorLocation(FMath::Lerp(StartLocation, TargetLocation, EasedAlpha));
+
+	// 이동 완료 처리
+	if (Alpha >= 1.0f)
+	{
+		bIsMoving = false;
+		SetActorTickEnabled(false);
+		OnMoveCompleted.Broadcast();
+	}
 }
 
 // 이 함수를 통해서 서버가 RepCardID 값을 바꾸어준다.
@@ -157,4 +182,17 @@ void ACardUnitActor::SetPreviewMode(bool bEnable)
 		MainMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		SetActorEnableCollision(true);
 	}
+}
+
+// TargetLocation으로 자연스럽게 이동
+void ACardUnitActor::MoveToLocation(FVector InTargetLocation, float Duration)
+{
+	StartLocation = GetActorLocation();
+	TargetLocation = InTargetLocation; 
+	MoveDuration = Duration;
+	MoveElapsed = 0.0f;              
+	bIsMoving = true;
+	
+	// Tick 활성화
+	SetActorTickEnabled(true);
 }
