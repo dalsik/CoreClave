@@ -9,12 +9,16 @@
 #include "CardUnitActor.generated.h"
 
 class AGridCell;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnMoveCompleted);
+
 UCLASS()
 class CORECLAVE_API ACardUnitActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
+	virtual void Tick(float DeltaTime) override;
 	// Sets default values for this actor's properties
 	ACardUnitActor();
 
@@ -64,6 +68,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Preview")
 	void SetPreviewMode(bool bEnable);
 
+/// <summary>
+/// 유닛이 다음 칸으로 넘어갈 때 자연스럽게 넘어가질 수 있도록 설정하기 위한 로직들
+/// </summary>
+
+	// 이동 완료 시 실행되는 콜백
+	UPROPERTY(BlueprintAssignable, Category = "Movement")
+	FOnMoveCompleted OnMoveCompleted;
+
+	// 현재 이동중인지
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	bool bIsMoving = false;
+
+	// 목표 위치로 부드럽게 이동
+	UFUNCTION(BlueprintCallable, Category = "Movement")
+	void MoveToLocation(FVector InTargetLocation, float Duration = 0.3f);
+	
+
 private:
 	// 비동기 로딩이 끝났을 때 실행될 콜 백 함수
 	void OnMeshLoaded(TSoftObjectPtr<USkeletalMesh> LoadedMeshAsset);
@@ -73,4 +94,9 @@ private:
 
 	UPROPERTY()
 	bool bIsPreviewMode = false;
+
+	FVector StartLocation;
+	FVector TargetLocation;
+	float MoveElapsed = 0.0f;
+	float MoveDuration = 0.3f;
 };

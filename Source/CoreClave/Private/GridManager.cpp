@@ -240,13 +240,13 @@ bool AGridManager::RemoveUnitFromCell(int32 Row, int32 Col)
     return true;
 }
 
+// 현재 있는 셀과 다음으로 가야할 셀을 전달받고 셀의 상태 변경 및 유닛 이동 로직 실행
 bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToCol)
 {
     if (!IsValidCell(FromRow, FromCol) || !IsCellEmpty(ToRow, ToCol))
     {
         return false;
     }
-
     AGridCell* FromCell = GetCell(FromRow, FromCol);
     AGridCell* ToCell = GetCell(ToRow, ToCol);
     if (!FromCell || !ToCell)
@@ -260,16 +260,20 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToC
         return false;
     }
 
-    Unit->SetActorLocation(ToCell->GetActorLocation() + FVector(0.0f, 0.0f, 50.0f));
-
-    if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
-    {
-        CardUnit->CurrentCell = ToCell;
-    }
-
+    // 셀의 상태변경
     ToCell->SetOccupied(Unit);
     ToCell->OnUnitSpawned(Unit);
     FromCell->ClearCell();
+
+	if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
+	{
+		CardUnit->CurrentCell = ToCell;
+
+        // 시각적 이동은 CardUnitActor에서 적용
+        const FVector TargetPos =
+			ToCell->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f);
+        CardUnit->MoveToLocation(TargetPos, 1.0f);
+	}
 
     OnCellStateChanged.Broadcast(FromRow, FromCol);
     OnCellStateChanged.Broadcast(ToRow, ToCol);
@@ -278,6 +282,7 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToC
 
 void AGridManager::AdvanceAllUnits(int32 MoveDirection)
 {
+    // 서버에서만 실행되도록 설정
     if (!HasAuthority())
     {
         return;
@@ -382,6 +387,8 @@ bool AGridManager::TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow)
         return false;
     }
 
+    // 만약 셀의 범위를 넘어간거면 상대방의 기지에 들어간거니까 피해를 입히도록 적용
+    // 이거는 나중에 리팩토링으로 피해를 입히는 로직 자체는 BaseLaneManager에서 적용하는 것이 좋을 듯.
     if (!IsValidCell(NextRow, Col))
     {
         return TryResolveBaseEntry(Unit, NextRow);
@@ -540,7 +547,7 @@ void AGridManager::UpdateUnitPreview(AGridCell* HoveredCell, TSubclassOf<ACardUn
 
         PreviewUnitActor = GetWorld()->SpawnActor<ACardUnitActor>(
             UnitClass,
-            HoveredCell->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f),
+            HoveredCell->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f),
             FRotator(0.0f, MoveDirection * 90.0f, 0.0f),
             Params
         );
