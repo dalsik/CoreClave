@@ -518,9 +518,11 @@ void AGridManager::UpdateUnitPreview(AGridCell* HoveredCell, TSubclassOf<ACardUn
 {
     if (!HoveredCell || !UnitClass)
     {
-        UE_LOG(LogTemp, Warning, TEXT("HoveredCell: %s, UnitClass: %s"),
+        /*
+        * UE_LOG(LogTemp, Warning, TEXT("HoveredCell: %s, UnitClass: %s"),
             HoveredCell ? TEXT("Valid") : TEXT("NULL"),
             UnitClass ? TEXT("Valid") : TEXT("NULL"));
+        */
         return;
     }
 

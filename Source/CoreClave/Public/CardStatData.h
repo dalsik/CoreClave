@@ -31,7 +31,7 @@ public:
 	float Speed;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Cost;
+	int32 Cost;
 
 	// 스켈레탈 메시와 카드 아이콘 UI를 소프트 레퍼런스로 저장
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
