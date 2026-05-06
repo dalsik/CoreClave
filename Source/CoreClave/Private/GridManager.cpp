@@ -431,9 +431,10 @@ bool AGridManager::TryResolveBaseEntry(ACardUnitActor* Unit, int32 NextRow)
     }
 
     int32 RemainingBaseHealth = 0;
+	const int DamageAmount = FMath::RoundToInt(Unit->CurrentHP); // 피해량은 유닛의 현재 HP로 결정
     const bool bAppliedDamage = BaseLaneManager->ApplyBaseDamageByMoveDirection(
         Unit->MoveDirection,
-        BaseDamageOnReach,
+        DamageAmount,
         RemainingBaseHealth);
 
     if (!bAppliedDamage)
