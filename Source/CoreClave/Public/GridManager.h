@@ -119,6 +119,16 @@ public:
 
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void UpdateFrontlineCache();
+
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+    TArray<AGridCell*> GetReachableCells(ACardUnitActor* Unit, int32 MaxMoveDistance);
+
+    UFUNCTION(Blueprintcallable, Category = "Grid")
+    void HighlightReachableCells(const TArray<AGridCell*>& Cells);
+    
+    UFUNCTION(Blueprintcallable, Category = "Grid")
+    void ClearReachableHighlights();
+
 private:
     int32 GetIndex(int32 Row, int32 Col) const;
     bool TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow);
