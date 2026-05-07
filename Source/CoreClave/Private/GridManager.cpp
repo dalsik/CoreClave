@@ -656,3 +656,75 @@ int32 AGridManager::GetFrontlineRow(int32 MoveDirection) const
     else
         return CachedFrontlineRow_DirMinus1;
 }
+
+TArray<AGridCell*> AGridManager::GetReachableCells(ACardUnitActor* Unit, int32 MaxMoveDistance)
+{
+	TArray<AGridCell*> ReachableCells;
+	if (!Unit || !Unit->CurrentCell || MaxMoveDistance <= 0)
+	{
+		return ReachableCells;
+	}
+	const int32 StartRow = Unit->CurrentCell->Row;
+	const int32 StartCol = Unit->CurrentCell->Col;
+
+    const TArray<FIntPoint> Directions = {
+        FIntPoint(-1, 0), // 위
+        FIntPoint(1, 0),  // 아래
+        FIntPoint(0, -1), // 좌
+        FIntPoint(0, 1)   // 우
+    };
+
+    // 타깃유닛에서의 상하좌우 셀을 확인해본다.
+    for (const FIntPoint& Dir : Directions)
+    {
+        for (int32 Step = 1; Step <= MaxMoveDistance; ++Step)
+        {
+            const int32 TargetRow = StartRow + Dir.X * Step;
+            const int32 TargetCol = StartCol + Dir.Y * Step;
+
+            // 만약 범위 밖에 있는 셀이라면 체크 안함.
+            if (!IsValidCell(TargetRow, TargetCol))
+            {
+                break;
+            }
+
+            AGridCell* TargetCell = GetCell(TargetRow, TargetCol);
+            if (!TargetCell)
+            {
+                break;
+            }
+            
+            // 중간 칸이나 타깃 칸이 비어있지 않다면 해당 방향으로는 못감.
+            if (!TargetCell->IsEmpty())
+            {
+                break;
+            }
+
+            ReachableCells.Add(TargetCell);
+        }
+    }
+
+	return ReachableCells;
+}
+
+void AGridManager::HighlightReachableCells(const TArray<AGridCell*>& Cells)
+{
+    for (AGridCell* Cell : Cells)
+    {
+		if (Cell)
+		{
+			Cell->SetHighlight(true, true);
+		}
+    }
+}
+
+void AGridManager::ClearReachableHighlights()
+{
+	for (AGridCell* Cell : GridCells)
+	{
+		if (Cell)
+		{
+			Cell->SetHighlight(false, false);
+		}
+	}
+}
