@@ -121,7 +121,7 @@ public:
     void UpdateFrontlineCache();
 
 	UFUNCTION(BlueprintCallable, Category = "Grid")
-    TArray<AGridCell*> GetReachableCells(ACardUnitActor* Unit, int32 MaxMoveDistance);
+    TArray<AGridCell*> GetReachableCells(AGridCell* Cell, int32 MaxMoveDistance);
 
     UFUNCTION(Blueprintcallable, Category = "Grid")
     void HighlightReachableCells(const TArray<AGridCell*>& Cells);
@@ -159,5 +159,4 @@ private:
 
     UPROPERTY()
     FName CurrentPreviewCardID;
-
 };
