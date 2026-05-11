@@ -657,15 +657,23 @@ int32 AGridManager::GetFrontlineRow(int32 MoveDirection) const
         return CachedFrontlineRow_DirMinus1;
 }
 
-TArray<AGridCell*> AGridManager::GetReachableCells(ACardUnitActor* Unit, int32 MaxMoveDistance)
+TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMoveDistance)
 {
 	TArray<AGridCell*> ReachableCells;
-	if (!Unit || !Unit->CurrentCell || MaxMoveDistance <= 0)
+    ReachableCells.Reserve(MaxMoveDistance * 4);
+	if (!Cell || Cell->IsEmpty() || MaxMoveDistance <= 0)
 	{
 		return ReachableCells;
 	}
-	const int32 StartRow = Unit->CurrentCell->Row;
-	const int32 StartCol = Unit->CurrentCell->Col;
+    
+	ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
+    if (!Unit)
+    {
+        return ReachableCells;;
+    }
+
+    const int32 StartRow = Cell->Row;
+    const int32 StartCol = Cell->Col;
 
     const TArray<FIntPoint> Directions = {
         FIntPoint(-1, 0), // 위
@@ -694,13 +702,25 @@ TArray<AGridCell*> AGridManager::GetReachableCells(ACardUnitActor* Unit, int32 M
                 break;
             }
             
-            // 중간 칸이나 타깃 칸이 비어있지 않다면 해당 방향으로는 못감.
-            if (!TargetCell->IsEmpty())
+            // 빈 칸이면 이동 가능
+            if (TargetCell->IsEmpty())
             {
-                break;
+                ReachableCells.Add(TargetCell);
+                continue;
             }
 
+			ACardUnitActor* OccupyingUnit = Cast<ACardUnitActor>(TargetCell->OccupyingUnit);
+            
+            if (!OccupyingUnit) break;
+            // 해당 칸에 있는 유닛이 아군이면 못감
+			if (OccupyingUnit->MoveDirection == Unit->MoveDirection)
+			{
+				break;
+            }
+
+            // 적군이면 그 칸까지는 가능하지만 통과는 못함
             ReachableCells.Add(TargetCell);
+            break;
         }
     }
 

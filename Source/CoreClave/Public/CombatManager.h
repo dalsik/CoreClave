@@ -8,7 +8,7 @@
 
 class ACardUnitActor;
 
-// Combat outcome enum.
+// 전투 결과값을 열거형으로
 UENUM(BlueprintType)
 enum class ECombatResult : uint8
 {
