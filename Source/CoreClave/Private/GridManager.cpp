@@ -709,6 +709,8 @@ TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMov
                 continue;
             }
 
+            // 나중에 아군, 적군 중 지나갈 수 있게 하려면 아래 코드기반으로 캐스팅해서 예외처리하기
+            /*
 			ACardUnitActor* OccupyingUnit = Cast<ACardUnitActor>(TargetCell->OccupyingUnit);
             
             if (!OccupyingUnit) break;
@@ -718,8 +720,13 @@ TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMov
 				break;
             }
 
+
             // 적군이면 그 칸까지는 가능하지만 통과는 못함
             ReachableCells.Add(TargetCell);
+            break;
+            */
+
+            // 지금은 그냥 아군이든 적군이든 유닛 있으면 못지나가다록
             break;
         }
     }
