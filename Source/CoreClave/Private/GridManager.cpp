@@ -18,6 +18,9 @@ void AGridManager::BeginPlay()
 {
     Super::BeginPlay();
 
+    CachedFrontlineRow_Dir1 = GridRows - 1;
+    CachedFrontlineRow_Dir1 = 0;
+
     // 그리드 생성
     InitializeGrid();
 
@@ -40,6 +43,7 @@ void AGridManager::BeginPlay()
     {
         BaseLaneManager = Cast<ABaseLaneManager>(FoundActors[0]);
     }
+
 }
 
 void AGridManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -274,6 +278,9 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToC
 			ToCell->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f);
         CardUnit->MoveToLocation(TargetPos, 1.0f);
 	}
+
+	// 만약 옮긴 유닛의 행이 최전방행보다 크다면 최전방행 갱신
+    UpdateFrontlineCache();
 
     OnCellStateChanged.Broadcast(FromRow, FromCol);
     OnCellStateChanged.Broadcast(ToRow, ToCol);
@@ -696,6 +703,9 @@ TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMov
                 break;
             }
 
+            // 최전방 라인보단 앞으로 이동할 수 없도록 한다.
+            if (IsBeyondFrontline(Unit->MoveDirection, TargetRow)) break;
+
             AGridCell* TargetCell = GetCell(TargetRow, TargetCol);
             if (!TargetCell)
             {
@@ -754,4 +764,20 @@ void AGridManager::ClearReachableHighlights()
 			Cell->SetHighlight(false, false);
 		}
 	}
+}
+
+bool AGridManager::IsBeyondFrontline(int32 MoveDirection, int32 Row) const
+{
+    // 해당 유저의 최전방 행을 가져오고 
+    const int32 FrontlineRow = GetFrontlineRow(MoveDirection); 
+
+    if (MoveDirection == 1)
+    {
+        return FrontlineRow > Row;
+    }
+    else
+    {
+        // 플레이어 1의 경우는 거꾸로 내려오는 방향이므로 Row가 커버리면 안된다.
+        return FrontlineRow < Row;
+    }
 }

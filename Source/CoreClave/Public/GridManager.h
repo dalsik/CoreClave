@@ -123,10 +123,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grid")
     TArray<AGridCell*> GetReachableCells(AGridCell* Cell, int32 MaxMoveDistance);
 
-    UFUNCTION(Blueprintcallable, Category = "Grid")
+    UFUNCTION(BlueprintCallable, Category = "Grid")
     void HighlightReachableCells(const TArray<AGridCell*>& Cells);
     
-    UFUNCTION(Blueprintcallable, Category = "Grid")
+    UFUNCTION(BlueprintCallable, Category = "Grid")
     void ClearReachableHighlights();
 
 private:
@@ -139,10 +139,10 @@ private:
     /// <summary>
     /// 최전선을 파악하기 위한 캐시 변수들
     /// <summary>
-    UPROPERTY(Replicated)
-	int32 CachedFrontlineRow_Dir1 = 6; // MoveDirection+1 플레이어
-    UPROPERTY(Replicated)
-	int32 CachedFrontlineRow_DirMinus1 = 0; // MoveDirection-1 플레이어
+    UPROPERTY(Replicated, EditAnywhere)
+	int32 CachedFrontlineRow_Dir1; // MoveDirection+1 플레이어
+    UPROPERTY(Replicated, EditAnywhere)
+	int32 CachedFrontlineRow_DirMinus1; // MoveDirection-1 플레이어
     bool bFrontlineDirty = true; // 갱신 필요 여부
 
     /// <summary>
@@ -159,4 +159,7 @@ private:
 
     UPROPERTY()
     FName CurrentPreviewCardID;
+
+    UFUNCTION()
+    bool IsBeyondFrontline(int32 MoveDirection, int32 Row) const;
 };

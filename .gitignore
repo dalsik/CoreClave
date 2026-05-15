@@ -1,15 +1,20 @@
 # Unreal Engine
-Binaries/
-DerivedDataCache/
-Intermediate/
-Saved/
-.vs/
-.vscode/
-.sln/
+/Binaries/
+/DerivedDataCache/
+/Intermediate/
+/Saved/
+/.vs/
+/.vscode/
+*.VC.db
+*.VC.opendb
+*.sln
+*.xcodeproj
 
 # Paid Asset
 Content/SciFi_Dog
 Content/FuturisticWarrior
+Content/Platformer_8_Underworld
+Content/VRS_LowPolyNature
 
 # Build system
 *.pdb
