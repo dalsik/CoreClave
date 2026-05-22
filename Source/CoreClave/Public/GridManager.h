@@ -19,6 +19,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
     FOnCellStateChanged, int32, Row, int32, Col);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_FiveParams(
     FOnCombatResolved, int32, AttackerRow, int32, AttackerCol, int32, DefenderRow, int32, DefenderCol, ECombatResult, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFrontlineChanged);
+
 
 UCLASS()
 class CORECLAVE_API AGridManager : public AActor
@@ -67,7 +69,7 @@ public:
     void InitializeGrid();
 
     UFUNCTION(BlueprintCallable, Category = "Grid")
-    AActor* SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> UnitClass);
+    AActor* SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> UnitClass, int32 MoveDirection);
 
     UFUNCTION(BlueprintCallable, Category = "Grid")
     AGridCell* GetCellFromHitActor(AActor* HitActor);
@@ -129,6 +131,26 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Grid")
     void ClearReachableHighlights();
 
+    // 자신의 최전방라인이 어디까지인지 반환하기 위한 함수
+	UFUNCTION(BlueprintCallable, Category = "Grid")
+	FVector GetFrontlineWorldLocation(int32 MoveDirection) const;
+
+    /// <summary>
+    /// 최전선을 파악하기 위한 캐시 변수들
+    /// <summary>
+    
+	UPROPERTY(BlueprintAssignable, Category = "Grid|Events")
+	FOnFrontlineChanged OnFrontlineChanged;
+
+    UPROPERTY(ReplicatedUsing = OnRep_FrontlineRows, EditAnywhere, BlueprintReadWrite)
+    int32 CachedFrontlineRow_Dir1; // MoveDirection+1 플레이어
+    UPROPERTY(ReplicatedUsing = OnRep_FrontlineRows, EditAnywhere, BlueprintReadWrite)
+    int32 CachedFrontlineRow_DirMinus1; // MoveDirection-1 플레이어
+    bool bFrontlineDirty = true; // 갱신 필요 여부
+
+    UFUNCTION()
+	void OnRep_FrontlineRows();
+
 private:
     int32 GetIndex(int32 Row, int32 Col) const;
     bool TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow);
@@ -136,14 +158,7 @@ private:
     void ResolveCombatBetweenUnits(ACardUnitActor* Attacker, ACardUnitActor* Defender);
     void RemoveUnitActor(ACardUnitActor* Unit);
 
-    /// <summary>
-    /// 최전선을 파악하기 위한 캐시 변수들
-    /// <summary>
-    UPROPERTY(Replicated, EditAnywhere)
-	int32 CachedFrontlineRow_Dir1; // MoveDirection+1 플레이어
-    UPROPERTY(Replicated, EditAnywhere)
-	int32 CachedFrontlineRow_DirMinus1; // MoveDirection-1 플레이어
-    bool bFrontlineDirty = true; // 갱신 필요 여부
+
 
     /// <summary>
     /// 프리뷰 유닛을 위한 변수들

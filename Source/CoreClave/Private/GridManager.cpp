@@ -19,7 +19,7 @@ void AGridManager::BeginPlay()
     Super::BeginPlay();
 
     CachedFrontlineRow_Dir1 = GridRows - 1;
-    CachedFrontlineRow_Dir1 = 0;
+    CachedFrontlineRow_DirMinus1 = 0;
 
     // 그리드 생성
     InitializeGrid();
@@ -102,7 +102,7 @@ void AGridManager::InitializeGrid()
     }
 }
 
-AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> UnitClass)
+AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> UnitClass, int32 MoveDirection)
 {
     if (!UnitClass)
     {
@@ -145,6 +145,7 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> 
     if (ACardUnitActor* CardUnit = Cast<ACardUnitActor>(Unit))
     {
         CardUnit->CurrentCell = Cell;
+        CardUnit->MoveDirection = MoveDirection;
     }
 
     OnCellStateChanged.Broadcast(Row, Col);
@@ -279,8 +280,6 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToC
         CardUnit->MoveToLocation(TargetPos, 1.0f);
 	}
 
-	// 만약 옮긴 유닛의 행이 최전방행보다 크다면 최전방행 갱신
-    UpdateFrontlineCache();
 
     OnCellStateChanged.Broadcast(FromRow, FromCol);
     OnCellStateChanged.Broadcast(ToRow, ToCol);
@@ -606,10 +605,11 @@ bool AGridManager::IsPlaceableCell(int32 Row, int32 Col, int32 MoveDirection) co
 
     const int32 FrontlineRow = GetFrontlineRow(MoveDirection);
 
-    UE_LOG(LogTemp, Warning,
+    // 디버깅 시
+    /*UE_LOG(LogTemp, Warning,
         TEXT("IsPlaceableCell: Row=%d, Col=%d, MoveDir=%d, FrontlineRow=%d, GridRows=%d"),
         Row, Col, MoveDirection, FrontlineRow, GridRows);
-
+    */
 
     if (MoveDirection == 1)
     {
@@ -625,6 +625,8 @@ bool AGridManager::IsPlaceableCell(int32 Row, int32 Col, int32 MoveDirection) co
 
 void AGridManager::UpdateFrontlineCache()
 {
+	if (!HasAuthority()) return; // 서버에서만 계산하도록 설정
+
     // MoveDirection 1 최전선
     CachedFrontlineRow_Dir1 = GridRows - 1;
     for (int32 Row = 0; Row < GridRows; ++Row)
@@ -652,6 +654,7 @@ void AGridManager::UpdateFrontlineCache()
         }
 
     bFrontlineDirty = false;
+	OnFrontlineChanged.Broadcast(); // 최전방 라인 변경 이벤트 브로드캐스트
 }
 
 // 플레이어의 입장에서 가장 최전선에 있는 유닛의 Row를 반환
@@ -780,4 +783,30 @@ bool AGridManager::IsBeyondFrontline(int32 MoveDirection, int32 Row) const
         // 플레이어 1의 경우는 거꾸로 내려오는 방향이므로 Row가 커버리면 안된다.
         return FrontlineRow < Row;
     }
+}
+
+FVector AGridManager::GetFrontlineWorldLocation(int32 MoveDirection) const
+{
+    const int32 FrontlineRow = GetFrontlineRow(MoveDirection);
+    const int32 MidCol = GridCols / 2;
+
+    FVector Center = GetWorldPositionFromCell(FrontlineRow, MidCol);
+    
+    // 만약 플레이어 0이라면
+    if (MoveDirection == 1)
+    {
+		Center.X -= CellSize * 0.5f; // 최전선이 있는 행의 중앙에서 약간 뒤쪽으로 위치하도록 조정
+    }
+    else
+    {
+		Center.X += CellSize * 0.5f; // 최전선이 있는 행의 중앙에서 약간 뒤쪽으로 위치하도록 조정
+    }
+
+    return Center;
+}
+
+// 최전방 라인을 위한 브로드캐스트
+void AGridManager::OnRep_FrontlineRows()
+{
+    OnFrontlineChanged.Broadcast();
 }
