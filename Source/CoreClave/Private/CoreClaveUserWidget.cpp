@@ -39,8 +39,10 @@ void UCoreClaveUserWidget::NativeConstruct()
 			CreateCardAndAddToHand();
 		}
 
+		bNeedHandLayoutUpdate = true;
+
 		// 초기 배치 즉시 적용
-		UpdateHandLayout(0.0f);
+		//UpdateHandLayout(0.0f);
 	}
 }
 
@@ -51,6 +53,8 @@ void UCoreClaveUserWidget::NativeTick(const FGeometry& MyGeometry, float InDelta
 
 	APlayerController* PC = GetOwningPlayer();
 	if (!PC || !PC->IsLocalController()) return;
+	
+	//if (!bNeedHandLayoutUpdate) return;
 
 	UpdateHandLayout(InDeltaTime);
 }
@@ -60,7 +64,6 @@ void UCoreClaveUserWidget::AddCardTohand()
 {
 	CreateCardAndAddToHand();
 }
-
 
 // 실제 카드 생성 로직
 void UCoreClaveUserWidget::CreateCardAndAddToHand()
@@ -119,6 +122,7 @@ void UCoreClaveUserWidget::CreateCardAndAddToHand()
 			}
 		}
 	}
+	//bNeedHandLayoutUpdate = true; // 핸드 레이아웃 업데이트 설정
 }
 
 
@@ -135,6 +139,7 @@ void UCoreClaveUserWidget::ReMoveCardFromHand(UUserWidget* CardToRemove)
 	CardToRemove->RemoveFromParent();
 
 	UpdateHandLayout(0.0f);
+	//bNeedHandLayoutUpdate = true;
 }
 
 // 카드를 부채꼴로 만들어주는 함수
@@ -162,7 +167,7 @@ void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 		UUserWidget* Card = HandCards[i];
 		if (!Card) return;
 
-		// 캔버스 슬롯 가져오기 ( 위치 조정을 하기 위해서)
+		// 캔버스 슬롯 가져오기 (위치 조정을 하기 위해서)
 		UCanvasPanelSlot* CanvasSlot = Cast<UCanvasPanelSlot>(Card->Slot);
 		if (CanvasSlot)
 		{
@@ -172,7 +177,19 @@ void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 			CanvasSlot->SetAutoSize(true); // 카드 본래의 크기를 유지하도록 한다.
 
 
-			bool bIsHovered = Card->IsHovered();
+			UCardUserWidget* CardWidget = Cast<UCardUserWidget>(Card);
+			if (!CardWidget) continue;
+
+			const bool bHoveredNow = CardWidget->IsHovered();
+
+			/*
+			마우스가 카드 위에 있다
+			그리고 드래그 중이 아니다
+			그리고 드롭 직후 한 번 무시해야 하는 상태도 아니다
+			*/
+			const bool bIsHovered = bHoveredNow
+				&& !CardWidget->bIsDragging;
+
 
 			// 각도 계산
 			float DefaultAngle = StartAngle + (i * AngleStep);
@@ -186,21 +203,21 @@ void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 			float TargetX = ArchRadius * FMath::Cos(Pos_Radian);
 			float TargetY = ArchRadius * FMath::Sin(Pos_Radian) + ArchRadius;
 
-			float TargetAngle; // 호버 시 0도로 적용하기 위함
+			const float TargetScaleValue = bIsHovered ? 1.7f : 1.0f;
 
-			if (bIsHovered) {
-				TargetAngle = 0.0f;
-				TargetY -= MouseEnter_TargetY;
-			}
-			else
+			float TargetAngle = DefaultAngle;
+			if (bIsHovered)
 			{
-				TargetAngle = DefaultAngle;
+				if (!CardWidget->bIgnoreHoverOnce)
+				{
+					TargetAngle = 0.0f;
+					TargetY -= MouseEnter_TargetY;
+				}
 			}
 
 			FVector2D TargetPos(TargetX, TargetY);
 
 			FVector2D CurrentPos = CanvasSlot->GetPosition();
-			float InterpSpeed = bIsHovered ? 15.0f : Power;
 
 			//현재 위치에서 목 표 위치로 10의 속도로 부드럽게 이동(InterpTo)
 			FVector2D NewPos = FMath::Vector2DInterpTo(CurrentPos, TargetPos, DeltaTime, Power);
@@ -208,11 +225,25 @@ void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 			// 위치 적용
 			CanvasSlot->SetPosition(NewPos);
 
-			
 			// 회전 적용
 			float CurrentAngle = Card->GetRenderTransform().Angle;
 			float NewAngle = FMath::FInterpTo(CurrentAngle, TargetAngle, DeltaTime, Power);
 			Card->SetRenderTransformAngle(NewAngle);
+
+			// 스케일 적용
+			FVector2D CurrentScale = Card->GetRenderTransform().Scale;
+			FVector2D TargetScale(TargetScaleValue, TargetScaleValue);
+			FVector2D NewScale = FMath::Vector2DInterpTo(CurrentScale, TargetScale, DeltaTime, Power);
+			Card->SetRenderScale(NewScale);
+
 		}
 	}
+	//bNeedHandLayoutUpdate = false;
 }
+
+// 이거 나중에 최적화 할떄 bool형 기반으로 판단하도록 바꿔야할듯. 지금은 테스트로 그냥 매번 업데이트 하도록 해놨음.
+void UCoreClaveUserWidget::RequestHandLayOutUpdate()
+{
+	bNeedHandLayoutUpdate = true;
+}
+

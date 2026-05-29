@@ -19,6 +19,7 @@ class CORECLAVE_API UCoreClaveUserWidget : public UUserWidget
 	
 public:
 
+
 	UFUNCTION(BlueprintCallable, Category = "Card System")
 	void AddCardTohand();
 
@@ -29,12 +30,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Card System")
 	void ReMoveCardFromHand(UUserWidget* CardToReMove);
 
+	UFUNCTION(BlueprintCallable, Category = "Card System")
+	void RequestHandLayOutUpdate();
 
 protected:
 	virtual void NativeConstruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 	
-	// 카드 생성 및 데이터 삽입을 담당하는 함수
+	// 카드 생성 및 데이터 삽입을 담당하는 함수ㄷ/ㅋ토드
 	void CreateCardAndAddToHand();
 
 
@@ -74,6 +77,10 @@ protected:
 	TArray<FName> PlayerDeckStack;
 
 	// 부채꼴 모양 설정값
-	const float ArchRadius = 800.0f; // 부채꼴 반지름 (클수록 완만함)
+	const float ArchRadius = 1000.0f; // 부채꼴 반지름 (클수록 완만함)
 	const float MaxSpreadAngle = 40.0f; // 카드가 최대로 펼쳐질 각도 범위
+
+	UPROPERTY()
+	bool bNeedHandLayoutUpdate = false; // 이 변수를 이용해서 업데이트 유무 적용
+
 };

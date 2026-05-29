@@ -36,4 +36,21 @@ public:
 	FName GetCardId() const {
 		return CachedCardData.CardId;
 	}
+
+	// 카드 위치 정상화
+	UPROPERTY(BlueprintReadOnly, Category = "Card System")
+	bool bIsDragging = false;
+
+	UFUNCTION(BlueprintCallable, Category = "Card System")
+	void SetDraggingState(bool bDragging);
+
+	// 카드 위치 정상화
+	UFUNCTION(BlueprintCallable, Category = "Card State")
+	void ResetCardVisual();
+
+	UPROPERTY(BlueprintReadWrite, Category = "CardSystem")
+	bool bIgnoreHoverOnce = false;
+	
+protected:
+	virtual void NativeOnMouseLeave(const FPointerEvent& MouseEvent) override;
 };

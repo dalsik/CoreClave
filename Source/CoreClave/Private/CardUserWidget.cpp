@@ -21,3 +21,23 @@ void UCardUserWidget::SetCardData(const FCardStatData& Data)
 	}
 }
 
+void UCardUserWidget::SetDraggingState(bool bDragging)
+{
+	bIsDragging = bDragging;
+}
+
+void UCardUserWidget::ResetCardVisual()
+{
+	// 위치 초기화
+	bIsDragging = false;
+	bIgnoreHoverOnce = true; // 해당 변수로 비주얼을 한번 리셋을 해주어야 CoreClaveUserWidget에서 호버 효과가 다시 작동할 수 있게 한다.
+	SetRenderTransformAngle(0.f);
+	SetRenderTranslation(FVector2D::ZeroVector);
+	SetRenderScale(FVector2D(1.f, 1.f));
+}
+
+void UCardUserWidget::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
+{
+	Super::NativeOnMouseLeave(MouseEvent);
+	bIgnoreHoverOnce = false; // 마우스가 카드를 벗어날 때 리셋
+}
