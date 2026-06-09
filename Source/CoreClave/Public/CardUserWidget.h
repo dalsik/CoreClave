@@ -36,6 +36,11 @@ public:
 	FName GetCardId() const {
 		return CachedCardData.CardId;
 	}
+	
+	UFUNCTION(BlueprintCallable, Category = "Data")
+	int32 GetCardCost() const {
+		return CachedCardData.Cost;
+	}
 
 	// 카드 위치 정상화
 	UPROPERTY(BlueprintReadOnly, Category = "Card System")

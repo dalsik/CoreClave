@@ -208,11 +208,8 @@ void UCoreClaveUserWidget::UpdateHandLayout(float DeltaTime)
 			float TargetAngle = DefaultAngle;
 			if (bIsHovered)
 			{
-				if (!CardWidget->bIgnoreHoverOnce)
-				{
-					TargetAngle = 0.0f;
-					TargetY -= MouseEnter_TargetY;
-				}
+				TargetAngle = 0.0f;
+				TargetY -= MouseEnter_TargetY;
 			}
 
 			FVector2D TargetPos(TargetX, TargetY);

@@ -45,6 +45,9 @@ public:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Settings")
     TSubclassOf<AGridCell> GridCellClass;
+    
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GridSettings")
+    TSubclassOf<UStaticMesh> GroundMesh;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grid|Rules")
     int32 BaseDamageOnReach = 1;

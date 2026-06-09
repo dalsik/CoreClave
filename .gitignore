@@ -15,6 +15,10 @@ Content/SciFi_Dog
 Content/FuturisticWarrior
 Content/Platformer_8_Underworld
 Content/VRS_LowPolyNature
+Content/AncientTempleRuins
+Content/Kenny_PlatFormer
+Content/__ExternalActors__/AncientTempleRuins/
+Content/__ExternalObjects__/AncientTempleRuins/
 
 # Build system
 *.pdb
