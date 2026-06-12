@@ -1,0 +1,217 @@
+#include "DeckBuilderSubsystem.h"
+
+#include "DeckBuilderSaveGame.h"
+#include "Kismet/GameplayStatics.h"
+
+int32 UDeckBuilderSubsystem::ResolveCardManaCost_Implementation(FName CardId) const
+{
+	return 0;
+}
+
+void UDeckBuilderSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+
+	LoadFromSlot();
+}
+
+void UDeckBuilderSubsystem::SetWorkingDeck(const FDeckData& NewDeckData)
+{
+	WorkingDeck = NewDeckData;
+	NormalizeWorkingDeck();
+	BroadcastWorkingDeckChanged();
+}
+
+void UDeckBuilderSubsystem::ResetWorkingDeck()
+{
+	WorkingDeck.Reset();
+	WorkingDeck.DeckName = FName(TEXT("Deck_01"));
+	NormalizeWorkingDeck();
+	BroadcastWorkingDeckChanged();
+}
+
+bool UDeckBuilderSubsystem::AddCard(FName CardId)
+{
+	if (CardId.IsNone() || WorkingDeck.IsAtMaxSize(MaxDeckSize))
+	{
+		return false;
+	}
+
+	WorkingDeck.CardIds.Add(CardId);
+	NormalizeWorkingDeck();
+	BroadcastWorkingDeckChanged();
+	return true;
+}
+
+bool UDeckBuilderSubsystem::RemoveCardAt(int32 CardIndex)
+{
+	if (!WorkingDeck.CardIds.IsValidIndex(CardIndex))
+	{
+		return false;
+	}
+
+	WorkingDeck.CardIds.RemoveAt(CardIndex);
+	NormalizeWorkingDeck();
+	BroadcastWorkingDeckChanged();
+	return true;
+}
+
+bool UDeckBuilderSubsystem::ValidateWorkingDeck(FText& OutErrorText) const
+{
+	if (WorkingDeck.CardIds.Num() != MaxDeckSize)
+	{
+		OutErrorText = FText::FromString(FString::Printf(TEXT("Deck must contain exactly %d cards."), MaxDeckSize));
+		return false;
+	}
+
+	for (const FName& CardId : WorkingDeck.CardIds)
+	{
+		if (CardId.IsNone())
+		{
+			OutErrorText = FText::FromString(TEXT("Deck contains an invalid CardID."));
+			return false;
+		}
+	}
+
+	OutErrorText = FText::GetEmpty();
+	return true;
+}
+
+bool UDeckBuilderSubsystem::LoadFromSlot()
+{
+	if (!UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex))
+	{
+		ResetWorkingDeck();
+		return false;
+	}
+
+	if (UDeckBuilderSaveGame* SaveGame = Cast<UDeckBuilderSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName.ToString(), SaveUserIndex)))
+	{
+		if (SaveGame->DeckCollection.Decks.Num() > 0 && SaveGame->DeckCollection.IsValidSelection())
+		{
+			WorkingDeck = SaveGame->DeckCollection.Decks[SaveGame->DeckCollection.SelectedDeckIndex];
+		}
+		else if (SaveGame->DeckCollection.Decks.Num() > 0)
+		{
+			WorkingDeck = SaveGame->DeckCollection.Decks[0];
+		}
+		else
+		{
+			ResetWorkingDeck();
+		}
+
+		NormalizeWorkingDeck();
+		BroadcastWorkingDeckChanged();
+		return true;
+	}
+
+	ResetWorkingDeck();
+	return false;
+}
+
+bool UDeckBuilderSubsystem::SaveToSlot()
+{
+	UDeckBuilderSaveGame* SaveGame = Cast<UDeckBuilderSaveGame>(UGameplayStatics::CreateSaveGameObject(UDeckBuilderSaveGame::StaticClass()));
+	if (!SaveGame)
+	{
+		return false;
+	}
+
+	SaveGame->DeckCollection.Decks.Reset();
+	SaveGame->DeckCollection.Decks.Add(WorkingDeck);
+	SaveGame->DeckCollection.SelectedDeckIndex = 0;
+	SaveGame->DeckCollection.EnsureOneDeckExists();
+
+	const bool bSaved = UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlotName.ToString(), SaveUserIndex);
+	if (bSaved)
+	{
+		BroadcastWorkingDeckChanged();
+	}
+
+	return bSaved;
+}
+
+void UDeckBuilderSubsystem::SetMaxDeckSize(int32 NewMaxDeckSize)
+{
+	MaxDeckSize = FMath::Max(NewMaxDeckSize, 1);
+	NormalizeWorkingDeck();
+}
+
+void UDeckBuilderSubsystem::SetSaveSlotName(FName NewSaveSlotName)
+{
+	SaveSlotName = NewSaveSlotName.IsNone() ? FName(TEXT("DeckBuilderSlot")) : NewSaveSlotName;
+}
+
+void UDeckBuilderSubsystem::SetSaveUserIndex(int32 NewSaveUserIndex)
+{
+	SaveUserIndex = FMath::Max(NewSaveUserIndex, 0);
+}
+
+void UDeckBuilderSubsystem::SetBattleMapName(FName NewBattleMapName)
+{
+	BattleMapName = NewBattleMapName.IsNone() ? FName(TEXT("BattleMap")) : NewBattleMapName;
+}
+
+void UDeckBuilderSubsystem::NormalizeWorkingDeck()
+{
+	if (WorkingDeck.DeckName.IsNone())
+	{
+		WorkingDeck.DeckName = FName(TEXT("Deck_01"));
+	}
+
+	if (WorkingDeck.CardIds.Num() > MaxDeckSize)
+	{
+		WorkingDeck.CardIds.SetNum(MaxDeckSize);
+	}
+}
+
+void UDeckBuilderSubsystem::GetWorkingDeckUniqueCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const
+{
+	OutCardIds.Reset();
+	OutCounts.Reset();
+
+	TMap<FName, int32> CardCounts;
+	for (const FName& CardId : WorkingDeck.CardIds)
+	{
+		if (CardId.IsNone())
+		{
+			continue;
+		}
+
+		int32& Count = CardCounts.FindOrAdd(CardId);
+		++Count;
+	}
+
+	for (const FName& CardId : WorkingDeck.CardIds)
+	{
+		if (CardId.IsNone() || OutCardIds.Contains(CardId))
+		{
+			continue;
+		}
+
+		OutCardIds.Add(CardId);
+		OutCounts.Add(CardCounts.FindChecked(CardId));
+	}
+}
+
+void UDeckBuilderSubsystem::GetWorkingDeckManaCurve(TArray<int32>& OutManaCurve, int32 MaxManaCost) const
+{
+	MaxManaCost = FMath::Max(MaxManaCost, 0);
+	OutManaCurve.Init(0, MaxManaCost + 1);
+
+	for (const FName& CardId : WorkingDeck.CardIds)
+	{
+		if (CardId.IsNone())
+		{
+			continue;
+		}
+
+		const int32 CardCost = FMath::Clamp(ResolveCardManaCost(CardId), 0, MaxManaCost);
+		++OutManaCurve[CardCost];
+	}
+}
+
+void UDeckBuilderSubsystem::BroadcastWorkingDeckChanged()
+{
+	OnWorkingDeckChanged.Broadcast(WorkingDeck);
+}
