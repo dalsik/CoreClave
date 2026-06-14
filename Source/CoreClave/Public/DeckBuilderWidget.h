@@ -47,6 +47,15 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Deck Builder")
 	int32 GetWorkingDeckCardCount() const;
 
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	int32 GetOwnedCardCount(FName CardId) const;
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	bool HasOwnedCard(FName CardId) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
+	void GetOwnedCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	void GetWorkingDeckUniqueCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const;
 
@@ -56,6 +65,9 @@ public:
 protected:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Deck Builder")
 	void BP_OnWorkingDeckChanged(FDeckData WorkingDeck);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Deck Builder")
+	void BP_OnOwnedCardsChanged();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Deck Builder")
 	void BP_OnSubsystemBound();
@@ -72,4 +84,7 @@ private:
 
 	UFUNCTION()
 	void HandleSubsystemWorkingDeckChanged(FDeckData WorkingDeck);
+
+	UFUNCTION()
+	void HandleSubsystemOwnedCardsChanged();
 };

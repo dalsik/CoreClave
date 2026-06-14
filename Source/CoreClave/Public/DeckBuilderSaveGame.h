@@ -13,4 +13,7 @@ class CORECLAVE_API UDeckBuilderSaveGame : public USaveGame
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Deck")
 	FDeckCollection DeckCollection;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Deck")
+	TMap<FName, int32> OwnedCardCounts;
 };

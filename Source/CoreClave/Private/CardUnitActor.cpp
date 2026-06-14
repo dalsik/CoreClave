@@ -91,7 +91,7 @@ void ACardUnitActor::LoadMeshFromID(FName CardID)
 	{
 		// 수치 데이터 적용
 		CurrentHP = UnitData->HP;
-		CurrentSpeed = UnitData->Speed;
+		CurrentSPD = UnitData->SPD;
 
 		// 스켈레탈 메시 비동기로 로딩 진행
 		// 데이터에 해당 메시 경로가 설정되어 있다면 로딩을 시작해라

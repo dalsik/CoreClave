@@ -34,7 +34,7 @@ public:
 
 	// 현재 체력 등등(나중에 사용할 게임 로직용 변수)
 	float CurrentHP;
-	float CurrentSpeed;
+	float CurrentSPD;
 
 protected:
 	

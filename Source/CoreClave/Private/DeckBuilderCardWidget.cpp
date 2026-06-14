@@ -2,11 +2,27 @@
 
 #include "DeckBuilderCardDragDropOperation.h"
 
+void UDeckBuilderCardWidget::SetCardStatData(const FCardStatData& Data)
+{
+	CachedCardData = Data;
+	CardId = Data.CardId;
+	CardCost = FMath::Max(Data.Cost, 0);
+	BP_OnCardDataChanged();
+}
+
 void UDeckBuilderCardWidget::SetCardData(FName InCardId, int32 InCardCost)
 {
+	CachedCardData.CardId = InCardId;
+	CachedCardData.Cost = FMath::Max(InCardCost, 0);
 	CardId = InCardId;
 	CardCost = FMath::Max(InCardCost, 0);
 	BP_OnCardDataChanged();
+}
+
+void UDeckBuilderCardWidget::SetCardCount(int32 InCardCount)
+{
+	CardCount = FMath::Max(InCardCount, 0);
+	BP_OnCardCountChanged(CardCount);
 }
 
 void UDeckBuilderCardWidget::SetDraggingState(bool bInIsDragging)
@@ -15,7 +31,6 @@ void UDeckBuilderCardWidget::SetDraggingState(bool bInIsDragging)
 	BP_OnDragStateChanged(bInIsDragging);
 }
 
-// 드래그 오퍼레이션을 생성해서 드래그한 카드의 정보를 담도록 설정
 UDeckBuilderCardDragDropOperation* UDeckBuilderCardWidget::CreateCardDragDropOperation(UWidget* DefaultDragVisual, EDragPivot Pivot, FVector2D Offset) const
 {
 	if (CardId.IsNone())

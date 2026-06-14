@@ -30,6 +30,7 @@ void UDeckBuilderWidget::BindSubsystem()
 	if (CachedDeckBuilderSubsystem)
 	{
 		CachedDeckBuilderSubsystem->OnWorkingDeckChanged.AddUniqueDynamic(this, &UDeckBuilderWidget::HandleSubsystemWorkingDeckChanged);
+		CachedDeckBuilderSubsystem->OnOwnedCardsChanged.AddUniqueDynamic(this, &UDeckBuilderWidget::HandleSubsystemOwnedCardsChanged);
 		BP_OnSubsystemBound();
 		RefreshFromSubsystem();
 	}
@@ -40,6 +41,7 @@ void UDeckBuilderWidget::UnbindSubsystem()
 	if (CachedDeckBuilderSubsystem)
 	{
 		CachedDeckBuilderSubsystem->OnWorkingDeckChanged.RemoveDynamic(this, &UDeckBuilderWidget::HandleSubsystemWorkingDeckChanged);
+		CachedDeckBuilderSubsystem->OnOwnedCardsChanged.RemoveDynamic(this, &UDeckBuilderWidget::HandleSubsystemOwnedCardsChanged);
 		CachedDeckBuilderSubsystem = nullptr;
 		BP_OnSubsystemUnbound();
 	}
@@ -148,6 +150,29 @@ int32 UDeckBuilderWidget::GetWorkingDeckCardCount() const
 	return CachedDeckBuilderSubsystem ? CachedDeckBuilderSubsystem->GetWorkingDeckCardCount() : 0;
 }
 
+int32 UDeckBuilderWidget::GetOwnedCardCount(FName CardId) const
+{
+	return CachedDeckBuilderSubsystem ? CachedDeckBuilderSubsystem->GetOwnedCardCount(CardId) : 0;
+}
+
+bool UDeckBuilderWidget::HasOwnedCard(FName CardId) const
+{
+	return CachedDeckBuilderSubsystem ? CachedDeckBuilderSubsystem->HasOwnedCard(CardId) : false;
+}
+
+void UDeckBuilderWidget::GetOwnedCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const
+{
+	if (CachedDeckBuilderSubsystem)
+	{
+		CachedDeckBuilderSubsystem->GetOwnedCardCounts(OutCardIds, OutCounts);
+	}
+	else
+	{
+		OutCardIds.Reset();
+		OutCounts.Reset();
+	}
+}
+
 void UDeckBuilderWidget::GetWorkingDeckUniqueCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const
 {
 	if (CachedDeckBuilderSubsystem)
@@ -176,4 +201,9 @@ void UDeckBuilderWidget::GetWorkingDeckManaCurve(TArray<int32>& OutManaCurve, in
 void UDeckBuilderWidget::HandleSubsystemWorkingDeckChanged(FDeckData WorkingDeck)
 {
 	BP_OnWorkingDeckChanged(WorkingDeck);
+}
+
+void UDeckBuilderWidget::HandleSubsystemOwnedCardsChanged()
+{
+	BP_OnOwnedCardsChanged();
 }

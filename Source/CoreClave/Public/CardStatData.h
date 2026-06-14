@@ -28,7 +28,7 @@ public:
 	float ATK;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float Speed;
+	float SPD;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 Cost;

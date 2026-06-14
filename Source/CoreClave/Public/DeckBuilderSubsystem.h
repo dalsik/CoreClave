@@ -6,6 +6,7 @@
 #include "DeckBuilderSubsystem.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWorkingDeckChanged, FDeckData, WorkingDeck);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOwnedCardsChanged);
 
 UCLASS()
 class CORECLAVE_API UDeckBuilderSubsystem : public UGameInstanceSubsystem
@@ -17,6 +18,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Deck Builder")
 	FOnWorkingDeckChanged OnWorkingDeckChanged;
+
+	UPROPERTY(BlueprintAssignable, Category = "Deck Builder")
+	FOnOwnedCardsChanged OnOwnedCardsChanged;
 
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	FDeckData GetWorkingDeck() const { return WorkingDeck; }
@@ -70,16 +74,37 @@ public:
 	int32 GetWorkingDeckCardCount() const { return WorkingDeck.CardIds.Num(); }
 
 	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	int32 GetOwnedCardCount(FName CardId) const;
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	bool HasOwnedCard(FName CardId) const;
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
 	void GetWorkingDeckUniqueCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const;
 
 	UFUNCTION(BlueprintPure, Category = "Deck Builder")
 	void GetWorkingDeckManaCurve(TArray<int32>& OutManaCurve, int32 MaxManaCost = 10) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
+	void GetOwnedCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
+	void SeedSampleOwnedCards();
+
+	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
+	bool AddOwnedCard(FName CardId, int32 Count = 1);
+
+	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
+	bool ConsumeOwnedCard(FName CardId, int32 Count = 1);
 
 	UFUNCTION(BlueprintNativeEvent, Category = "Deck Builder")
 	int32 ResolveCardManaCost(FName CardId) const;
 	virtual int32 ResolveCardManaCost_Implementation(FName CardId) const;
 
 private:
+	UPROPERTY()
+	TMap<FName, int32> DefaultOwnedCardCounts;
+
 	UPROPERTY()
 	FDeckData WorkingDeck;
 
@@ -95,6 +120,12 @@ private:
 	UPROPERTY()
 	FName BattleMapName = TEXT("BattleMap");
 
+	UPROPERTY()
+	TMap<FName, int32> OwnedCardCounts;
+
 	void NormalizeWorkingDeck();
+	void InitializeDefaultOwnedCards();
+	void NormalizeOwnedCardCounts();
 	void BroadcastWorkingDeckChanged();
+	void BroadcastOwnedCardsChanged();
 };

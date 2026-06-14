@@ -12,6 +12,7 @@ void UDeckBuilderSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
+	InitializeDefaultOwnedCards();
 	LoadFromSlot();
 }
 
@@ -82,6 +83,9 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 	if (!UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex))
 	{
 		ResetWorkingDeck();
+		OwnedCardCounts = DefaultOwnedCardCounts;
+		NormalizeOwnedCardCounts();
+		BroadcastOwnedCardsChanged();
 		return false;
 	}
 
@@ -100,12 +104,33 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 			ResetWorkingDeck();
 		}
 
+		OwnedCardCounts = DefaultOwnedCardCounts;
+		for (const TPair<FName, int32>& Entry : SaveGame->OwnedCardCounts)
+		{
+			if (Entry.Key.IsNone() || Entry.Value <= 0)
+			{
+				continue;
+			}
+
+			const int32 DefaultCount = DefaultOwnedCardCounts.FindRef(Entry.Key);
+			const int32 ExtraCount = FMath::Max(Entry.Value - DefaultCount, 0);
+			if (ExtraCount > 0)
+			{
+				int32& StoredCount = OwnedCardCounts.FindOrAdd(Entry.Key);
+				StoredCount += ExtraCount;
+			}
+		}
+		NormalizeOwnedCardCounts();
 		NormalizeWorkingDeck();
 		BroadcastWorkingDeckChanged();
+		BroadcastOwnedCardsChanged();
 		return true;
 	}
 
 	ResetWorkingDeck();
+	OwnedCardCounts = DefaultOwnedCardCounts;
+	NormalizeOwnedCardCounts();
+	BroadcastOwnedCardsChanged();
 	return false;
 }
 
@@ -121,11 +146,13 @@ bool UDeckBuilderSubsystem::SaveToSlot()
 	SaveGame->DeckCollection.Decks.Add(WorkingDeck);
 	SaveGame->DeckCollection.SelectedDeckIndex = 0;
 	SaveGame->DeckCollection.EnsureOneDeckExists();
+	SaveGame->OwnedCardCounts = OwnedCardCounts;
 
 	const bool bSaved = UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlotName.ToString(), SaveUserIndex);
 	if (bSaved)
 	{
 		BroadcastWorkingDeckChanged();
+		BroadcastOwnedCardsChanged();
 	}
 
 	return bSaved;
@@ -152,6 +179,94 @@ void UDeckBuilderSubsystem::SetBattleMapName(FName NewBattleMapName)
 	BattleMapName = NewBattleMapName.IsNone() ? FName(TEXT("BattleMap")) : NewBattleMapName;
 }
 
+int32 UDeckBuilderSubsystem::GetOwnedCardCount(FName CardId) const
+{
+	if (CardId.IsNone())
+	{
+		return 0;
+	}
+
+	if (const int32* FoundCount = OwnedCardCounts.Find(CardId))
+	{
+		return FMath::Max(*FoundCount, 0);
+	}
+
+	return 0;
+}
+
+bool UDeckBuilderSubsystem::HasOwnedCard(FName CardId) const
+{
+	return GetOwnedCardCount(CardId) > 0;
+}
+
+void UDeckBuilderSubsystem::GetOwnedCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const
+{
+	OutCardIds.Reset();
+	OutCounts.Reset();
+
+	for (const TPair<FName, int32>& Entry : OwnedCardCounts)
+	{
+		if (Entry.Key.IsNone() || Entry.Value <= 0)
+		{
+			continue;
+		}
+
+		OutCardIds.Add(Entry.Key);
+		OutCounts.Add(Entry.Value);
+	}
+}
+
+void UDeckBuilderSubsystem::SeedSampleOwnedCards()
+{
+	InitializeDefaultOwnedCards();
+	OwnedCardCounts = DefaultOwnedCardCounts;
+	NormalizeOwnedCardCounts();
+	BroadcastOwnedCardsChanged();
+}
+
+void UDeckBuilderSubsystem::InitializeDefaultOwnedCards()
+{
+	DefaultOwnedCardCounts.Reset();
+	for (int32 CardIndex = 1; CardIndex <= 10; ++CardIndex)
+	{
+		const FName CardId(*FString::Printf(TEXT("Card_%03d_Nor"), CardIndex));
+		DefaultOwnedCardCounts.Add(CardId, 2);
+	}
+}
+
+bool UDeckBuilderSubsystem::AddOwnedCard(FName CardId, int32 Count)
+{
+	if (CardId.IsNone() || Count <= 0)
+	{
+		return false;
+	}
+
+	int32& StoredCount = OwnedCardCounts.FindOrAdd(CardId);
+	StoredCount += Count;
+	NormalizeOwnedCardCounts();
+	BroadcastOwnedCardsChanged();
+	return true;
+}
+
+bool UDeckBuilderSubsystem::ConsumeOwnedCard(FName CardId, int32 Count)
+{
+	if (CardId.IsNone() || Count <= 0)
+	{
+		return false;
+	}
+
+	int32* StoredCount = OwnedCardCounts.Find(CardId);
+	if (!StoredCount || *StoredCount < Count)
+	{
+		return false;
+	}
+
+	*StoredCount -= Count;
+	NormalizeOwnedCardCounts();
+	BroadcastOwnedCardsChanged();
+	return true;
+}
+
 void UDeckBuilderSubsystem::NormalizeWorkingDeck()
 {
 	if (WorkingDeck.DeckName.IsNone())
@@ -162,6 +277,23 @@ void UDeckBuilderSubsystem::NormalizeWorkingDeck()
 	if (WorkingDeck.CardIds.Num() > MaxDeckSize)
 	{
 		WorkingDeck.CardIds.SetNum(MaxDeckSize);
+	}
+}
+
+void UDeckBuilderSubsystem::NormalizeOwnedCardCounts()
+{
+	TArray<FName> KeysToRemove;
+	for (const TPair<FName, int32>& Entry : OwnedCardCounts)
+	{
+		if (Entry.Key.IsNone() || Entry.Value <= 0)
+		{
+			KeysToRemove.Add(Entry.Key);
+		}
+	}
+
+	for (const FName& CardId : KeysToRemove)
+	{
+		OwnedCardCounts.Remove(CardId);
 	}
 }
 
@@ -214,4 +346,9 @@ void UDeckBuilderSubsystem::GetWorkingDeckManaCurve(TArray<int32>& OutManaCurve,
 void UDeckBuilderSubsystem::BroadcastWorkingDeckChanged()
 {
 	OnWorkingDeckChanged.Broadcast(WorkingDeck);
+}
+
+void UDeckBuilderSubsystem::BroadcastOwnedCardsChanged()
+{
+	OnOwnedCardsChanged.Broadcast();
 }
