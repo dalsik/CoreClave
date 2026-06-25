@@ -6,7 +6,7 @@
 <br/>
 
 <p align="center">
-  <img width="900" alt="CoreClave 대표 이미지" src="./ReadmeAssets/CoreClave/title.png" />
+  <img width="1746" height="901" alt="Image" src="https://github.com/user-attachments/assets/744376da-b998-4a02-9e1c-e361f0e58469" />
 </p>
 
 <br/>
@@ -16,7 +16,7 @@
 ## 목차
 
 - [프로젝트 소개](#프로젝트-소개)
-- [프로젝트 정보](#프로젝트-정보)
+- [시스템 흐름도](#시스템-흐름도)
 - [핵심 구현 요약](#핵심-구현-요약)
 - [프로젝트 화면](#프로젝트-화면)
 - [1. 로비-전투 데이터 흐름 설계](#1-로비-전투-데이터-흐름-설계)
@@ -38,121 +38,74 @@
 **덱 데이터가 로비에서 전투까지 안정적으로 이어지는 구조**와  
 **새로운 유닛을 쉽게 추가할 수 있는 데이터 기반 설계**에 중점을 두었습니다.
 
-<br/>
-
----
-
-## 프로젝트 정보
-
-<table>
-  <tr>
-    <td width="36%" valign="top">
-      <h3>Info</h3>
-
 | 항목 | 내용 |
 |---|---|
 | 프로젝트명 | CoreClave |
 | 장르 | 3D 턴제 전략 카드 게임 |
-| 엔진 | Unreal Engine |
+| 개발 기간 | 개발 진행 중 |
+| 엔진 | Unreal Engine 5.5 |
 | 언어 | C++ / Blueprint |
 | 개발 형태 | 1인 개발 |
 | 주요 구현 | 덱 구성, 턴제 전투, 유닛 배치, DataTable 구조 |
 
-  </td>
-  <td width="64%" valign="top">
-      <h3>Project Flow</h3>
-      <img width="100%" alt="CoreClave 프로젝트 흐름" src="./ReadmeAssets/CoreClave/project_flow.png" />
-  </td>
-  </tr>
-</table>
+<br/>
 
 <br/>
 
 ---
 
-## 핵심 구현 요약
+## 시스템 흐름도
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>Deck & Battle Flow</h3>
-      <p>
-        로비에서 편집한 덱 데이터를 전투 씬까지 유지하고,
-        전투 시작 전 검증 과정을 거쳐 안정적으로 사용할 수 있도록 구조를 분리했습니다.
-      </p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>Data-Driven Unit System</h3>
-      <p>
-        유닛의 스탯, 비용, 아이콘, 클래스 정보를 DataTable에서 관리하여
-        신규 유닛을 Row 추가 중심으로 확장할 수 있도록 구성했습니다.
-      </p>
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <h3>Turn-Based Battle</h3>
-      <p>
-        플레이어 턴과 적 턴을 구분하고,
-        카드 선택, 유닛 배치, 이동, 공격 흐름이 턴 상태에 따라 동작하도록 구현했습니다.
-      </p>
-    </td>
-    <td width="50%" valign="top">
-      <h3>UI & Feedback</h3>
-      <p>
-        덱 편집 UI, 전투 카드 UI, 유닛 정보 UI를 구성하고
-        데이터 변경에 따라 화면이 갱신되도록 구현했습니다.
-      </p>
-    </td>
-  </tr>
-</table>
+CoreClave는 **1:1 대전 게임**을 목표로 구상한 프로젝트이기 때문에, Unreal Engine의 **Listen Server 구조**를 기준으로 로비와 전투 흐름을 설계했습니다.  
+Host는 서버이자 플레이어로 동작하고, Client는 Host가 생성한 세션에 접속하는 방식으로 게임 흐름을 구성했습니다.
+
+로비에서는 각 플레이어가 자신의 덱을 구성하고, 전투 시작 요청이 들어오면 덱 크기와 CardID 유효성을 검증한 뒤 전투 씬으로 진입하도록 설계했습니다.  
+전투에서는 카드 선택, 유닛 배치, 턴 진행, 전투 결과 처리가 서버 기준의 Match State 흐름으로 연결되도록 구조를 나누었습니다.
+
+이를 통해 로비에서는 빠른 UI 반응성을 유지하고, 전투에서는 서버가 검증한 데이터만 사용하도록 하여 1:1 대전 환경에서 데이터 불일치가 발생하지 않도록 설계하고자 하였습니다.
+
+<p align="center">
+  <img width="100%" alt="CoreClave 프로젝트 파이프라인" src="https://github.com/user-attachments/assets/51bf514d-1a2e-41ab-9937-e10613ce2b1f" />
+</p>
 
 <br/>
 
 ---
 
-## 프로젝트 화면
+## 핵심 구현
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <b>덱 구성 화면</b><br/>
-      <sub>로비에서 카드 추가 / 제거 / 덱 상태 확인</sub>
-    </td>
-    <td align="center" width="50%">
-      <b>전투 화면</b><br/>
-      <sub>카드와 유닛을 활용한 턴 기반 전투</sub>
-    </td>
-  </tr>
-  <tr>
-    <td>
-      <img width="100%" alt="덱 구성 화면" src="./ReadmeAssets/CoreClave/deck_builder.png" />
-    </td>
-    <td>
-      <img width="100%" alt="전투 화면" src="./ReadmeAssets/CoreClave/battle_scene.png" />
-    </td>
-  </tr>
-</table>
+CoreClave는 로비에서 덱을 구성하고, 검증된 덱 데이터를 기반으로 전투에 진입하는 구조로 설계했습니다.  
+전투에서는 카드 선택, 유닛 배치, 턴 진행, UI 갱신이 하나의 흐름으로 연결되며, 유닛 정보는 DataTable을 기준으로 관리됩니다.
 
 <br/>
 
 <table>
   <tr>
-    <td align="center" width="50%">
-      <b>유닛 데이터 관리</b><br/>
-      <sub>DataTable 기반 유닛 정보 관리</sub>
+    <td align="center" width="50%" valign="top">
+      <b>Deck & Battle Flow</b><br/>
+      <sub>로비 덱 데이터를 전투 씬까지 유지하고, 전투 시작 전 검증하는 구조</sub>
+      <br/><br/>
+      <img width="100%" height="300" alt="덱 구성 및 전투 흐름" src="https://github.com/user-attachments/assets/a20c9a52-e1ba-4722-bafc-5606504fd702" />
     </td>
-    <td align="center" width="50%">
-      <b>카드 / 유닛 UI</b><br/>
-      <sub>DataTable 정보를 UI와 전투 로직에서 공통 사용</sub>
+    <td align="center" width="50%" valign="top">
+      <b>Data-Driven Unit System</b><br/>
+      <sub>유닛 정보를 DataTable에서 관리하여 Row 추가 중심으로 확장</sub>
+      <br/><br/>
+      <img width="100%" height="300" alt="DataTable 기반 유닛 관리" src="./ReadmeAssets/CoreClave/data_table.png" />
     </td>
   </tr>
   <tr>
-    <td>
-      <img width="100%" alt="DataTable 화면" src="./ReadmeAssets/CoreClave/data_table.png" />
+    <td align="center" width="50%" valign="top">
+      <b>Turn-Based Battle</b><br/>
+      <sub>카드 선택, 유닛 배치, 이동, 공격 흐름을 턴 상태에 따라 처리</sub>
+      <br/><br/>
+      <img width="100%" height="300" alt="턴제 전투 화면" src="https://github.com/user-attachments/assets/3eed9334-241d-4420-be93-774562189936" />
     </td>
-    <td>
-      <img width="100%" alt="카드 유닛 UI" src="./ReadmeAssets/CoreClave/unit_ui.png" />
+    <td align="center" width="50%" valign="top">
+      <b>UI & Feedback</b><br/>
+      <sub>덱 편집 UI, 전투 카드 UI, 유닛 정보 UI 구성</sub>
+      <br/><br/>
+      <img width="100%" height="300" alt="카드 및 유닛 UI" src="./ReadmeAssets/CoreClave/unit_ui.png" />
     </td>
   </tr>
 </table>
@@ -352,6 +305,10 @@ Listen Server 구조에서도 전투 상태를 서버 기준으로 처리할 수
 유닛 데이터를 `FTableRowBase` 기반 구조체로 정의하고, DataTable에서 Row 단위로 관리했습니다.  
 카드나 유닛은 `UnitID`를 기준으로 DataTable Row를 조회하고,  
 조회한 데이터를 UI 표시, 유닛 Spawn, 전투 스탯 적용에 공통으로 사용했습니다.
+
+<pr>
+  <img width="1295" height="604" alt="Image" src="https://github.com/user-attachments/assets/3e2bcaab-baa7-4a41-94bb-212aa2979242" />
+</pr>
 
 <br/>
 
