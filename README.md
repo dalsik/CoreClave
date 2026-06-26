@@ -91,7 +91,7 @@ CoreClave는 로비에서 덱을 구성하고, 검증된 덱 데이터를 기반
       <b>Data-Driven Unit System</b><br/>
       <sub>유닛 정보를 DataTable에서 관리하여 Row 추가 중심으로 확장</sub>
       <br/><br/>
-      <img width="100%" height="300" alt="DataTable 기반 유닛 관리" src="./ReadmeAssets/CoreClave/data_table.png" />
+      <img width="100%" height="300" alt="Image" src="https://github.com/user-attachments/assets/3ad447e8-d154-43fd-9b79-103042b9337c" />
     </td>
   </tr>
   <tr>
@@ -102,10 +102,10 @@ CoreClave는 로비에서 덱을 구성하고, 검증된 덱 데이터를 기반
       <img width="100%" height="300" alt="턴제 전투 화면" src="https://github.com/user-attachments/assets/3eed9334-241d-4420-be93-774562189936" />
     </td>
     <td align="center" width="50%" valign="top">
-      <b>UI & Feedback</b><br/>
-      <sub>덱 편집 UI, 전투 카드 UI, 유닛 정보 UI 구성</sub>
+      <b>Listen Server Match Flow</b><br/>
+        <sub>Host가 서버와 플레이어 역할을 함께 수행하는 구조에서, 전투 시작·턴 진행·전투 결과 처리를 서버 기준 흐름으로 설계</sub>
       <br/><br/>
-      <img width="100%" height="300" alt="카드 및 유닛 UI" src="./ReadmeAssets/CoreClave/unit_ui.png" />
+      <img width="100%" height="1000" alt="Image" src="https://github.com/user-attachments/assets/e6c1ab51-239d-481b-b9a6-53f5a165d445" />
     </td>
   </tr>
 </table>
