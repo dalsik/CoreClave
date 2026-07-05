@@ -1,4 +1,4 @@
-ï»¿#include "GridManager.h"
+#include "GridManager.h"
 
 #include "BaseLaneManager.h"
 #include "CardUnitActor.h"
@@ -21,14 +21,14 @@ void AGridManager::BeginPlay()
     CachedFrontlineRow_Dir1 = GridRows - 1;
     CachedFrontlineRow_DirMinus1 = 0;
 
-    // ê·¸ë¦¬ë“œ ìƒì„±
+    // ±×¸®µå »ı¼º
     InitializeGrid();
 
     TArray<AActor*> FoundActors;
     UGameplayStatics::GetAllActorsOfClass(
         GetWorld(), ACombatManager::StaticClass(), FoundActors);
 
-    // CombatManager ìºì‹±
+    // CombatManager Ä³½Ì
     if (FoundActors.Num() > 0)
     {
         CombatManager = Cast<ACombatManager>(FoundActors[0]);
@@ -38,7 +38,7 @@ void AGridManager::BeginPlay()
     UGameplayStatics::GetAllActorsOfClass(
         GetWorld(), ABaseLaneManager::StaticClass(), FoundActors);
 
-    // BaseLaneManager ìºì‹±
+    // BaseLaneManager Ä³½Ì
     if (FoundActors.Num() > 0)
     {
         BaseLaneManager = Cast<ABaseLaneManager>(FoundActors[0]);
@@ -55,7 +55,7 @@ void AGridManager::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLife
 }
 void AGridManager::InitializeGrid()
 {
-    if (!HasAuthority()) return; // ì„œë²„ì—ì„œë§Œ ìŠ¤í°ë˜ë„ë¡ ì„¤ì •
+    if (!HasAuthority()) return; // ¼­¹ö¿¡¼­¸¸ ½ºÆùµÇµµ·Ï ¼³Á¤
     for (AGridCell* Cell : GridCells)
     {
         if (Cell)
@@ -149,7 +149,7 @@ AActor* AGridManager::SpawnUnitAtCell(int32 Row, int32 Col, TSubclassOf<AActor> 
     }
 
     OnCellStateChanged.Broadcast(Row, Col);
-    UpdateFrontlineCache(); // ìµœì „ì„  ë¼ì¸ ê°±ì‹ 
+    UpdateFrontlineCache(); // ÃÖÀü¼± ¶óÀÎ °»½Å
     return Unit;
 }
 
@@ -245,7 +245,7 @@ bool AGridManager::RemoveUnitFromCell(int32 Row, int32 Col)
     return true;
 }
 
-// í˜„ì¬ ìˆëŠ” ì…€ê³¼ ë‹¤ìŒìœ¼ë¡œ ê°€ì•¼í•  ì…€ì„ ì „ë‹¬ë°›ê³  ì…€ì˜ ìƒíƒœ ë³€ê²½ ë° ìœ ë‹› ì´ë™ ë¡œì§ ì‹¤í–‰
+// ÇöÀç ÀÖ´Â ¼¿°ú ´ÙÀ½À¸·Î °¡¾ßÇÒ ¼¿À» Àü´Ş¹Ş°í ¼¿ÀÇ »óÅÂ º¯°æ ¹× À¯´Ö ÀÌµ¿ ·ÎÁ÷ ½ÇÇà
 bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToCol)
 {
     if (!IsValidCell(FromRow, FromCol) || !IsCellEmpty(ToRow, ToCol))
@@ -265,7 +265,7 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToC
         return false;
     }
 
-    // ì…€ì˜ ìƒíƒœë³€ê²½
+    // ¼¿ÀÇ »óÅÂº¯°æ
     ToCell->SetOccupied(Unit);
     ToCell->OnUnitSpawned(Unit);
     FromCell->ClearCell();
@@ -274,7 +274,7 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToC
 	{
 		CardUnit->CurrentCell = ToCell;
 
-        // ì‹œê°ì  ì´ë™ì€ CardUnitActorì—ì„œ ì ìš©
+        // ½Ã°¢Àû ÀÌµ¿Àº CardUnitActor¿¡¼­ Àû¿ë
         const FVector TargetPos =
 			ToCell->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f);
         CardUnit->MoveToLocation(TargetPos, 1.0f);
@@ -288,7 +288,7 @@ bool AGridManager::MoveUnit(int32 FromRow, int32 FromCol, int32 ToRow, int32 ToC
 
 void AGridManager::AdvanceAllUnits(int32 MoveDirection)
 {
-    // ì„œë²„ì—ì„œë§Œ ì‹¤í–‰ë˜ë„ë¡ ì„¤ì •
+    // ¼­¹ö¿¡¼­¸¸ ½ÇÇàµÇµµ·Ï ¼³Á¤
     if (!HasAuthority())
     {
         return;
@@ -351,7 +351,7 @@ void AGridManager::UpdateDragHighlight(AGridCell* HoveredCell, int32 MoveDirecti
 
     if (HoveredCell)
     {
-        // í•´ë‹¹ Rowì™€ Col, í”Œë ˆì´ì–´ì˜ MoveDirection ë³€ìˆ˜ë¥¼ í™•ì¸í•˜ê³  ë°°ì¹˜ê°€ëŠ¥í•œ íƒ€ì¼ì¸ì§€ í™•ì¸í•œë‹¤.
+        // ÇØ´ç Row¿Í Col, ÇÃ·¹ÀÌ¾îÀÇ MoveDirection º¯¼ö¸¦ È®ÀÎÇÏ°í ¹èÄ¡°¡´ÉÇÑ Å¸ÀÏÀÎÁö È®ÀÎÇÑ´Ù.
         const bool bCanPlace = IsPlaceableCell(
             HoveredCell->Row,
             HoveredCell->Col,
@@ -393,8 +393,8 @@ bool AGridManager::TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow)
         return false;
     }
 
-    // ë§Œì•½ ì…€ì˜ ë²”ìœ„ë¥¼ ë„˜ì–´ê°„ê±°ë©´ ìƒëŒ€ë°©ì˜ ê¸°ì§€ì— ë“¤ì–´ê°„ê±°ë‹ˆê¹Œ í”¼í•´ë¥¼ ì…íˆë„ë¡ ì ìš©
-    // ì´ê±°ëŠ” ë‚˜ì¤‘ì— ë¦¬íŒ©í† ë§ìœ¼ë¡œ í”¼í•´ë¥¼ ì…íˆëŠ” ë¡œì§ ìì²´ëŠ” BaseLaneManagerì—ì„œ ì ìš©í•˜ëŠ” ê²ƒì´ ì¢‹ì„ ë“¯.
+    // ¸¸¾à ¼¿ÀÇ ¹üÀ§¸¦ ³Ñ¾î°£°Å¸é »ó´ë¹æÀÇ ±âÁö¿¡ µé¾î°£°Å´Ï±î ÇÇÇØ¸¦ ÀÔÈ÷µµ·Ï Àû¿ë
+    // ÀÌ°Å´Â ³ªÁß¿¡ ¸®ÆÑÅä¸µÀ¸·Î ÇÇÇØ¸¦ ÀÔÈ÷´Â ·ÎÁ÷ ÀÚÃ¼´Â BaseLaneManager¿¡¼­ Àû¿ëÇÏ´Â °ÍÀÌ ÁÁÀ» µí.
     if (!IsValidCell(NextRow, Col))
     {
         return TryResolveBaseEntry(Unit, NextRow);
@@ -421,7 +421,7 @@ bool AGridManager::TryAdvanceUnitFromCell(int32 Row, int32 Col, int32 NextRow)
     return true;
 }
 
-// ìœ ë‹›ì´ ìƒëŒ€ë°©ì˜ ì˜ì—­ì— ë“¤ì–´ê°€ë©´ í”¼í•´ë¥¼ ì…íˆê³  í•´ë‹¹ ìœ ë‹› ì‚­ì œí•´ë²„ë¦¼
+// À¯´ÖÀÌ »ó´ë¹æÀÇ ¿µ¿ª¿¡ µé¾î°¡¸é ÇÇÇØ¸¦ ÀÔÈ÷°í ÇØ´ç À¯´Ö »èÁ¦ÇØ¹ö¸²
 bool AGridManager::TryResolveBaseEntry(ACardUnitActor* Unit, int32 NextRow)
 {
     if (!Unit || !BaseLaneManager)
@@ -437,7 +437,7 @@ bool AGridManager::TryResolveBaseEntry(ACardUnitActor* Unit, int32 NextRow)
     }
 
     int32 RemainingBaseHealth = 0;
-	const int DamageAmount = FMath::RoundToInt(Unit->CurrentHP); // í”¼í•´ëŸ‰ì€ ìœ ë‹›ì˜ í˜„ì¬ HPë¡œ ê²°ì •
+	const int DamageAmount = FMath::RoundToInt(Unit->CurrentHP); // ÇÇÇØ·®Àº À¯´ÖÀÇ ÇöÀç HP·Î °áÁ¤
     const bool bAppliedDamage = BaseLaneManager->ApplyBaseDamageByMoveDirection(
         Unit->MoveDirection,
         DamageAmount,
@@ -520,7 +520,7 @@ void AGridManager::RemoveUnitActor(ACardUnitActor* Unit)
     UpdateFrontlineCache();
 }
 
-// ì‹œê°ì  í”¼ë“œë°±ì„ ìœ„í•œ í”„ë¦¬ë·° ìƒì„± ë¡œì§
+// ½Ã°¢Àû ÇÇµå¹éÀ» À§ÇÑ ÇÁ¸®ºä »ı¼º ·ÎÁ÷
 void AGridManager::UpdateUnitPreview(AGridCell* HoveredCell, TSubclassOf<ACardUnitActor> UnitClass, FName CardID, int32 MoveDirection)
 {
     if (!HoveredCell || !UnitClass)
@@ -582,7 +582,7 @@ void AGridManager::UpdateUnitPreview(AGridCell* HoveredCell, TSubclassOf<ACardUn
     CurrentPreviewCell = HoveredCell;
 }
 
-// í”„ë¦¬ë·°ìš© ì•¡í„° ì œê±°
+// ÇÁ¸®ºä¿ë ¾×ÅÍ Á¦°Å
 void AGridManager::ClearUnitPreview()
 {
     if (PreviewUnitActor)
@@ -594,18 +594,18 @@ void AGridManager::ClearUnitPreview()
     CurrentPreviewCardID = NAME_None;
 }
 
-// í•´ë‹¹ ì…€ì´ ê°€ëŠ¥í•œì§€ í™•ì¸í•˜ëŠ” ë¡œì§
+// ÇØ´ç ¼¿ÀÌ °¡´ÉÇÑÁö È®ÀÎÇÏ´Â ·ÎÁ÷
 bool AGridManager::IsPlaceableCell(int32 Row, int32 Col, int32 MoveDirection) const
 {
-    // ìœ íš¨í•œ ì…€ì¸ì§€ í™•ì¸
+    // À¯È¿ÇÑ ¼¿ÀÎÁö È®ÀÎ
     if (!IsValidCell(Row, Col)) return false;
 
-    // ë¹„ì–´ìˆëŠ”ì§€ í™•ì¸
+    // ºñ¾îÀÖ´ÂÁö È®ÀÎ
     if (!IsCellEmpty(Row, Col)) return false;
 
     const int32 FrontlineRow = GetFrontlineRow(MoveDirection);
 
-    // ë””ë²„ê¹… ì‹œ
+    // µğ¹ö±ë ½Ã
     /*UE_LOG(LogTemp, Warning,
         TEXT("IsPlaceableCell: Row=%d, Col=%d, MoveDir=%d, FrontlineRow=%d, GridRows=%d"),
         Row, Col, MoveDirection, FrontlineRow, GridRows);
@@ -613,21 +613,21 @@ bool AGridManager::IsPlaceableCell(int32 Row, int32 Col, int32 MoveDirection) co
 
     if (MoveDirection == 1)
     {
-        // ìœ„ë¡œ ì´ë™: FrontlineRow ~ GridRows-1 ì‚¬ì´ì— ë°°ì¹˜ ê°€ëŠ¥
+        // À§·Î ÀÌµ¿: FrontlineRow ~ GridRows-1 »çÀÌ¿¡ ¹èÄ¡ °¡´É
         return Row >= FrontlineRow && Row <= GridRows - 1;
     }
     else // MoveDirection == -1
     {
-        // ì•„ë˜ë¡œ ì´ë™: 0 ~ FrontlineRow ì‚¬ì´ì— ë°°ì¹˜ ê°€ëŠ¥
+        // ¾Æ·¡·Î ÀÌµ¿: 0 ~ FrontlineRow »çÀÌ¿¡ ¹èÄ¡ °¡´É
         return Row >= 0 && Row <= FrontlineRow;
     }
 }
 
 void AGridManager::UpdateFrontlineCache()
 {
-	if (!HasAuthority()) return; // ì„œë²„ì—ì„œë§Œ ê³„ì‚°í•˜ë„ë¡ ì„¤ì •
+	if (!HasAuthority()) return; // ¼­¹ö¿¡¼­¸¸ °è»êÇÏµµ·Ï ¼³Á¤
 
-    // MoveDirection 1 ìµœì „ì„ 
+    // MoveDirection 1 ÃÖÀü¼±
     CachedFrontlineRow_Dir1 = GridRows - 1;
     for (int32 Row = 0; Row < GridRows; ++Row)
         for (int32 Col = 0; Col < GridCols; ++Col)
@@ -640,7 +640,7 @@ void AGridManager::UpdateFrontlineCache()
                 CachedFrontlineRow_Dir1, Row);
         }
 
-    // MoveDirection -1 ìµœì „ì„ 
+    // MoveDirection -1 ÃÖÀü¼±
     CachedFrontlineRow_DirMinus1 = 0;
     for (int32 Row = GridRows - 1; Row >= 0; --Row)
         for (int32 Col = 0; Col < GridCols; ++Col)
@@ -654,13 +654,13 @@ void AGridManager::UpdateFrontlineCache()
         }
 
     bFrontlineDirty = false;
-	OnFrontlineChanged.Broadcast(); // ìµœì „ë°© ë¼ì¸ ë³€ê²½ ì´ë²¤íŠ¸ ë¸Œë¡œë“œìºìŠ¤íŠ¸
+	OnFrontlineChanged.Broadcast(); // ÃÖÀü¹æ ¶óÀÎ º¯°æ ÀÌº¥Æ® ºê·ÎµåÄ³½ºÆ®
 }
 
-// í”Œë ˆì´ì–´ì˜ ì…ì¥ì—ì„œ ê°€ì¥ ìµœì „ì„ ì— ìˆëŠ” ìœ ë‹›ì˜ Rowë¥¼ ë°˜í™˜
+// ÇÃ·¹ÀÌ¾îÀÇ ÀÔÀå¿¡¼­ °¡Àå ÃÖÀü¼±¿¡ ÀÖ´Â À¯´ÖÀÇ Row¸¦ ¹İÈ¯
 int32 AGridManager::GetFrontlineRow(int32 MoveDirection) const
 {
-    // ìºì‹œ ì‚¬ìš© (ìˆœíšŒ ì—†ìŒ)
+    // Ä³½Ã »ç¿ë (¼øÈ¸ ¾øÀ½)
     if (MoveDirection == 1)
         return CachedFrontlineRow_Dir1;
     else
@@ -670,12 +670,13 @@ int32 AGridManager::GetFrontlineRow(int32 MoveDirection) const
 TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMoveDistance)
 {
 	TArray<AGridCell*> ReachableCells;
-    ReachableCells.Reserve(MaxMoveDistance * 4);
 	if (!Cell || Cell->IsEmpty() || MaxMoveDistance <= 0)
 	{
 		return ReachableCells;
 	}
     
+	MaxMoveDistance = FMath::Max(MaxMoveDistance, 1);
+	ReachableCells.Reserve(MaxMoveDistance * 4);
 	ACardUnitActor* Unit = Cast<ACardUnitActor>(Cell->OccupyingUnit);
     if (!Unit)
     {
@@ -686,13 +687,13 @@ TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMov
     const int32 StartCol = Cell->Col;
 
     const TArray<FIntPoint> Directions = {
-        FIntPoint(-1, 0), // ìœ„
-        FIntPoint(1, 0),  // ì•„ë˜
-        FIntPoint(0, -1), // ì¢Œ
-        FIntPoint(0, 1)   // ìš°
+        FIntPoint(-1, 0), // À§
+        FIntPoint(1, 0),  // ¾Æ·¡
+        FIntPoint(0, -1), // ÁÂ
+        FIntPoint(0, 1)   // ¿ì
     };
 
-    // íƒ€ê¹ƒìœ ë‹›ì—ì„œì˜ ìƒí•˜ì¢Œìš° ì…€ì„ í™•ì¸í•´ë³¸ë‹¤.
+    // Å¸±êÀ¯´Ö¿¡¼­ÀÇ »óÇÏÁÂ¿ì ¼¿À» È®ÀÎÇØº»´Ù.
     for (const FIntPoint& Dir : Directions)
     {
         for (int32 Step = 1; Step <= MaxMoveDistance; ++Step)
@@ -700,13 +701,13 @@ TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMov
             const int32 TargetRow = StartRow + Dir.X * Step;
             const int32 TargetCol = StartCol + Dir.Y * Step;
 
-            // ë§Œì•½ ë²”ìœ„ ë°–ì— ìˆëŠ” ì…€ì´ë¼ë©´ ì²´í¬ ì•ˆí•¨.
+            // ¸¸¾à ¹üÀ§ ¹Û¿¡ ÀÖ´Â ¼¿ÀÌ¶ó¸é Ã¼Å© ¾ÈÇÔ.
             if (!IsValidCell(TargetRow, TargetCol))
             {
                 break;
             }
 
-            // ìµœì „ë°© ë¼ì¸ë³´ë‹¨ ì•ìœ¼ë¡œ ì´ë™í•  ìˆ˜ ì—†ë„ë¡ í•œë‹¤.
+            // ÃÖÀü¹æ ¶óÀÎº¸´Ü ¾ÕÀ¸·Î ÀÌµ¿ÇÒ ¼ö ¾øµµ·Ï ÇÑ´Ù.
             if (IsBeyondFrontline(Unit->MoveDirection, TargetRow)) break;
 
             AGridCell* TargetCell = GetCell(TargetRow, TargetCol);
@@ -715,31 +716,31 @@ TArray<AGridCell*> AGridManager::GetReachableCells(AGridCell* Cell, int32 MaxMov
                 break;
             }
             
-            // ë¹ˆ ì¹¸ì´ë©´ ì´ë™ ê°€ëŠ¥
+            // ºó Ä­ÀÌ¸é ÀÌµ¿ °¡´É
             if (TargetCell->IsEmpty())
             {
                 ReachableCells.Add(TargetCell);
                 continue;
             }
 
-            // ë‚˜ì¤‘ì— ì•„êµ°, ì êµ° ì¤‘ ì§€ë‚˜ê°ˆ ìˆ˜ ìˆê²Œ í•˜ë ¤ë©´ ì•„ë˜ ì½”ë“œê¸°ë°˜ìœ¼ë¡œ ìºìŠ¤íŒ…í•´ì„œ ì˜ˆì™¸ì²˜ë¦¬í•˜ê¸°
+            // ³ªÁß¿¡ ¾Æ±º, Àû±º Áß Áö³ª°¥ ¼ö ÀÖ°Ô ÇÏ·Á¸é ¾Æ·¡ ÄÚµå±â¹İÀ¸·Î Ä³½ºÆÃÇØ¼­ ¿¹¿ÜÃ³¸®ÇÏ±â
             /*
 			ACardUnitActor* OccupyingUnit = Cast<ACardUnitActor>(TargetCell->OccupyingUnit);
             
             if (!OccupyingUnit) break;
-            // í•´ë‹¹ ì¹¸ì— ìˆëŠ” ìœ ë‹›ì´ ì•„êµ°ì´ë©´ ëª»ê°
+            // ÇØ´ç Ä­¿¡ ÀÖ´Â À¯´ÖÀÌ ¾Æ±ºÀÌ¸é ¸ø°¨
 			if (OccupyingUnit->MoveDirection == Unit->MoveDirection)
 			{
 				break;
             }
 
 
-            // ì êµ°ì´ë©´ ê·¸ ì¹¸ê¹Œì§€ëŠ” ê°€ëŠ¥í•˜ì§€ë§Œ í†µê³¼ëŠ” ëª»í•¨
+            // Àû±ºÀÌ¸é ±× Ä­±îÁö´Â °¡´ÉÇÏÁö¸¸ Åë°ú´Â ¸øÇÔ
             ReachableCells.Add(TargetCell);
             break;
             */
 
-            // ì§€ê¸ˆì€ ê·¸ëƒ¥ ì•„êµ°ì´ë“  ì êµ°ì´ë“  ìœ ë‹› ìˆìœ¼ë©´ ëª»ì§€ë‚˜ê°€ë‹¤ë¡
+            // Áö±İÀº ±×³É ¾Æ±ºÀÌµç Àû±ºÀÌµç À¯´Ö ÀÖÀ¸¸é ¸øÁö³ª°¡´Ù·Ï
             break;
         }
     }
@@ -771,7 +772,7 @@ void AGridManager::ClearReachableHighlights()
 
 bool AGridManager::IsBeyondFrontline(int32 MoveDirection, int32 Row) const
 {
-    // í•´ë‹¹ ìœ ì €ì˜ ìµœì „ë°© í–‰ì„ ê°€ì ¸ì˜¤ê³  
+    // ÇØ´ç À¯ÀúÀÇ ÃÖÀü¹æ ÇàÀ» °¡Á®¿À°í 
     const int32 FrontlineRow = GetFrontlineRow(MoveDirection); 
 
     if (MoveDirection == 1)
@@ -780,7 +781,7 @@ bool AGridManager::IsBeyondFrontline(int32 MoveDirection, int32 Row) const
     }
     else
     {
-        // í”Œë ˆì´ì–´ 1ì˜ ê²½ìš°ëŠ” ê±°ê¾¸ë¡œ ë‚´ë ¤ì˜¤ëŠ” ë°©í–¥ì´ë¯€ë¡œ Rowê°€ ì»¤ë²„ë¦¬ë©´ ì•ˆëœë‹¤.
+        // ÇÃ·¹ÀÌ¾î 1ÀÇ °æ¿ì´Â °Å²Ù·Î ³»·Á¿À´Â ¹æÇâÀÌ¹Ç·Î Row°¡ Ä¿¹ö¸®¸é ¾ÈµÈ´Ù.
         return FrontlineRow < Row;
     }
 }
@@ -792,20 +793,20 @@ FVector AGridManager::GetFrontlineWorldLocation(int32 MoveDirection) const
 
     FVector Center = GetWorldPositionFromCell(FrontlineRow, MidCol);
     
-    // ë§Œì•½ í”Œë ˆì´ì–´ 0ì´ë¼ë©´
+    // ¸¸¾à ÇÃ·¹ÀÌ¾î 0ÀÌ¶ó¸é
     if (MoveDirection == 1)
     {
-		Center.X -= CellSize * 0.5f; // ìµœì „ì„ ì´ ìˆëŠ” í–‰ì˜ ì¤‘ì•™ì—ì„œ ì•½ê°„ ë’¤ìª½ìœ¼ë¡œ ìœ„ì¹˜í•˜ë„ë¡ ì¡°ì •
+		Center.X -= CellSize * 0.5f; // ÃÖÀü¼±ÀÌ ÀÖ´Â ÇàÀÇ Áß¾Ó¿¡¼­ ¾à°£ µÚÂÊÀ¸·Î À§Ä¡ÇÏµµ·Ï Á¶Á¤
     }
     else
     {
-		Center.X += CellSize * 0.5f; // ìµœì „ì„ ì´ ìˆëŠ” í–‰ì˜ ì¤‘ì•™ì—ì„œ ì•½ê°„ ë’¤ìª½ìœ¼ë¡œ ìœ„ì¹˜í•˜ë„ë¡ ì¡°ì •
+		Center.X += CellSize * 0.5f; // ÃÖÀü¼±ÀÌ ÀÖ´Â ÇàÀÇ Áß¾Ó¿¡¼­ ¾à°£ µÚÂÊÀ¸·Î À§Ä¡ÇÏµµ·Ï Á¶Á¤
     }
 
     return Center;
 }
 
-// ìµœì „ë°© ë¼ì¸ì„ ìœ„í•œ ë¸Œë¡œë“œìºìŠ¤íŠ¸
+// ÃÖÀü¹æ ¶óÀÎÀ» À§ÇÑ ºê·ÎµåÄ³½ºÆ®
 void AGridManager::OnRep_FrontlineRows()
 {
     OnFrontlineChanged.Broadcast();

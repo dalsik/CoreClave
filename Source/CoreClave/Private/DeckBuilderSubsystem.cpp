@@ -13,6 +13,7 @@ void UDeckBuilderSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	Super::Initialize(Collection);
 
 	InitializeDefaultOwnedCards();
+	EnsureDeckSlotCount(5);
 	LoadFromSlot();
 }
 
@@ -20,7 +21,11 @@ void UDeckBuilderSubsystem::SetWorkingDeck(const FDeckData& NewDeckData)
 {
 	WorkingDeck = NewDeckData;
 	NormalizeWorkingDeck();
+	CommitWorkingDeckToSelectedSlot();
+	RestoreOwnedCardCountsForWorkingDeck();
 	BroadcastWorkingDeckChanged();
+	BroadcastDeckCollectionChanged();
+	BroadcastOwnedCardsChanged();
 }
 
 void UDeckBuilderSubsystem::ResetWorkingDeck()
@@ -28,7 +33,31 @@ void UDeckBuilderSubsystem::ResetWorkingDeck()
 	WorkingDeck.Reset();
 	WorkingDeck.DeckName = FName(TEXT("Deck_01"));
 	NormalizeWorkingDeck();
+	CommitWorkingDeckToSelectedSlot();
+	RestoreOwnedCardCountsForWorkingDeck();
 	BroadcastWorkingDeckChanged();
+	BroadcastDeckCollectionChanged();
+	BroadcastOwnedCardsChanged();
+}
+
+bool UDeckBuilderSubsystem::SelectDeckSlot(int32 NewSelectedDeckIndex)
+{
+	EnsureDeckSlotCount(5);
+
+	if (!DeckCollection.Decks.IsValidIndex(NewSelectedDeckIndex))
+	{
+		return false;
+	}
+
+	CommitWorkingDeckToSelectedSlot();
+	DeckCollection.SelectedDeckIndex = NewSelectedDeckIndex;
+	WorkingDeck = DeckCollection.Decks[NewSelectedDeckIndex];
+	NormalizeWorkingDeck();
+	RestoreOwnedCardCountsForWorkingDeck();
+	BroadcastDeckCollectionChanged();
+	BroadcastWorkingDeckChanged();
+	BroadcastOwnedCardsChanged();
+	return true;
 }
 
 bool UDeckBuilderSubsystem::AddCard(FName CardId)
@@ -39,8 +68,16 @@ bool UDeckBuilderSubsystem::AddCard(FName CardId)
 	}
 
 	WorkingDeck.CardIds.Add(CardId);
+	CommitWorkingDeckToSelectedSlot();
+	if (int32* StoredCount = OwnedCardCounts.Find(CardId))
+	{
+		*StoredCount = FMath::Max(*StoredCount - 1, 0);
+	}
 	NormalizeWorkingDeck();
+	NormalizeOwnedCardCounts();
+	BroadcastDeckCollectionChanged();
 	BroadcastWorkingDeckChanged();
+	BroadcastOwnedCardsChanged();
 	return true;
 }
 
@@ -51,9 +88,19 @@ bool UDeckBuilderSubsystem::RemoveCardAt(int32 CardIndex)
 		return false;
 	}
 
+	const FName RemovedCardId = WorkingDeck.CardIds[CardIndex];
 	WorkingDeck.CardIds.RemoveAt(CardIndex);
+	CommitWorkingDeckToSelectedSlot();
+	if (!RemovedCardId.IsNone())
+	{
+		int32& StoredCount = OwnedCardCounts.FindOrAdd(RemovedCardId);
+		++StoredCount;
+	}
 	NormalizeWorkingDeck();
+	NormalizeOwnedCardCounts();
+	BroadcastDeckCollectionChanged();
 	BroadcastWorkingDeckChanged();
+	BroadcastOwnedCardsChanged();
 	return true;
 }
 
@@ -82,54 +129,56 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 {
 	if (!UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex))
 	{
-		ResetWorkingDeck();
+		DeckCollection.Decks.Reset();
+		DeckCollection.SelectedDeckIndex = 0;
+		EnsureDeckSlotCount(5);
+		WorkingDeck = DeckCollection.Decks.IsValidIndex(0) ? DeckCollection.Decks[0] : FDeckData();
+		NormalizeWorkingDeck();
 		OwnedCardCounts = DefaultOwnedCardCounts;
 		NormalizeOwnedCardCounts();
+		CommitWorkingDeckToSelectedSlot();
+		BroadcastDeckCollectionChanged();
+		BroadcastWorkingDeckChanged();
 		BroadcastOwnedCardsChanged();
 		return false;
 	}
 
 	if (UDeckBuilderSaveGame* SaveGame = Cast<UDeckBuilderSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName.ToString(), SaveUserIndex)))
 	{
-		if (SaveGame->DeckCollection.Decks.Num() > 0 && SaveGame->DeckCollection.IsValidSelection())
+		DeckCollection = SaveGame->DeckCollection;
+		EnsureDeckSlotCount(5);
+
+		if (!DeckCollection.IsValidSelection())
 		{
-			WorkingDeck = SaveGame->DeckCollection.Decks[SaveGame->DeckCollection.SelectedDeckIndex];
-		}
-		else if (SaveGame->DeckCollection.Decks.Num() > 0)
-		{
-			WorkingDeck = SaveGame->DeckCollection.Decks[0];
-		}
-		else
-		{
-			ResetWorkingDeck();
+			DeckCollection.SelectedDeckIndex = 0;
 		}
 
-		OwnedCardCounts = DefaultOwnedCardCounts;
-		for (const TPair<FName, int32>& Entry : SaveGame->OwnedCardCounts)
-		{
-			if (Entry.Key.IsNone() || Entry.Value <= 0)
-			{
-				continue;
-			}
+		WorkingDeck = DeckCollection.IsValidSelection() ? DeckCollection.Decks[DeckCollection.SelectedDeckIndex] : FDeckData();
+		NormalizeWorkingDeck();
 
-			const int32 DefaultCount = DefaultOwnedCardCounts.FindRef(Entry.Key);
-			const int32 ExtraCount = FMath::Max(Entry.Value - DefaultCount, 0);
-			if (ExtraCount > 0)
-			{
-				int32& StoredCount = OwnedCardCounts.FindOrAdd(Entry.Key);
-				StoredCount += ExtraCount;
-			}
+		OwnedCardCounts = SaveGame->OwnedCardCounts;
+		if (OwnedCardCounts.Num() == 0)
+		{
+			OwnedCardCounts = DefaultOwnedCardCounts;
 		}
 		NormalizeOwnedCardCounts();
-		NormalizeWorkingDeck();
+		CommitWorkingDeckToSelectedSlot();
+		BroadcastDeckCollectionChanged();
 		BroadcastWorkingDeckChanged();
 		BroadcastOwnedCardsChanged();
 		return true;
 	}
 
-	ResetWorkingDeck();
+	DeckCollection.Decks.Reset();
+	DeckCollection.SelectedDeckIndex = 0;
+	EnsureDeckSlotCount(5);
+	WorkingDeck = DeckCollection.Decks.IsValidIndex(0) ? DeckCollection.Decks[0] : FDeckData();
+	NormalizeWorkingDeck();
 	OwnedCardCounts = DefaultOwnedCardCounts;
 	NormalizeOwnedCardCounts();
+	CommitWorkingDeckToSelectedSlot();
+	BroadcastDeckCollectionChanged();
+	BroadcastWorkingDeckChanged();
 	BroadcastOwnedCardsChanged();
 	return false;
 }
@@ -142,16 +191,16 @@ bool UDeckBuilderSubsystem::SaveToSlot()
 		return false;
 	}
 
-	SaveGame->DeckCollection.Decks.Reset();
-	SaveGame->DeckCollection.Decks.Add(WorkingDeck);
-	SaveGame->DeckCollection.SelectedDeckIndex = 0;
-	SaveGame->DeckCollection.EnsureOneDeckExists();
+	CommitWorkingDeckToSelectedSlot();
+	EnsureDeckSlotCount(5);
+	SaveGame->DeckCollection = DeckCollection;
 	SaveGame->OwnedCardCounts = OwnedCardCounts;
 
 	const bool bSaved = UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlotName.ToString(), SaveUserIndex);
 	if (bSaved)
 	{
 		BroadcastWorkingDeckChanged();
+		BroadcastDeckCollectionChanged();
 		BroadcastOwnedCardsChanged();
 	}
 
@@ -192,6 +241,11 @@ int32 UDeckBuilderSubsystem::GetOwnedCardCount(FName CardId) const
 	}
 
 	return 0;
+}
+
+int32 UDeckBuilderSubsystem::GetDeckCardCount(int32 DeckIndex) const
+{
+	return DeckCollection.GetDeckCardCount(DeckIndex);
 }
 
 bool UDeckBuilderSubsystem::HasOwnedCard(FName CardId) const
@@ -297,6 +351,42 @@ void UDeckBuilderSubsystem::NormalizeOwnedCardCounts()
 	}
 }
 
+void UDeckBuilderSubsystem::EnsureDeckSlotCount(int32 DesiredDeckCount)
+{
+	DeckCollection.EnsureDeckCount(DesiredDeckCount);
+
+	if (!DeckCollection.IsValidSelection())
+	{
+		DeckCollection.SelectedDeckIndex = 0;
+	}
+}
+
+void UDeckBuilderSubsystem::CommitWorkingDeckToSelectedSlot()
+{
+	if (FDeckData* SelectedDeck = DeckCollection.GetSelectedDeck())
+	{
+		*SelectedDeck = WorkingDeck;
+	}
+}
+
+void UDeckBuilderSubsystem::RestoreOwnedCardCountsForWorkingDeck()
+{
+	OwnedCardCounts = DefaultOwnedCardCounts;
+
+	for (const FName& CardId : WorkingDeck.CardIds)
+	{
+		if (CardId.IsNone())
+		{
+			continue;
+		}
+
+		int32& StoredCount = OwnedCardCounts.FindOrAdd(CardId);
+		StoredCount = FMath::Max(StoredCount - 1, 0);
+	}
+
+	NormalizeOwnedCardCounts();
+}
+
 void UDeckBuilderSubsystem::GetWorkingDeckUniqueCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const
 {
 	OutCardIds.Reset();
@@ -351,4 +441,9 @@ void UDeckBuilderSubsystem::BroadcastWorkingDeckChanged()
 void UDeckBuilderSubsystem::BroadcastOwnedCardsChanged()
 {
 	OnOwnedCardsChanged.Broadcast();
+}
+
+void UDeckBuilderSubsystem::BroadcastDeckCollectionChanged()
+{
+	OnDeckCollectionChanged.Broadcast(DeckCollection);
 }

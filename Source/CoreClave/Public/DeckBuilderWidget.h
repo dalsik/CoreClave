@@ -1,11 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "DeckBuilderTypes.h"
 #include "DeckBuilderWidget.generated.h"
 
-class ADeckBuilderPlayerController;
 class UDeckBuilderSubsystem;
 
 UCLASS()
@@ -20,26 +19,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	void RefreshFromSubsystem();
 
-	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
-	void RequestAddCard(FName CardId);
-
-	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
-	void RequestRemoveCard(int32 CardIndex);
-
-	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
-	void RequestSaveDeck();
-
-	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
-	void RequestLoadDeck();
-
-	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
-	void RequestStartBattle();
-
 	UFUNCTION(BlueprintPure, Category = "Deck Builder")
 	UDeckBuilderSubsystem* GetDeckBuilderSubsystem() const { return CachedDeckBuilderSubsystem; }
-
-	UFUNCTION(BlueprintPure, Category = "Deck Builder")
-	ADeckBuilderPlayerController* GetDeckBuilderPlayerController() const;
 
 	UFUNCTION(BlueprintPure, Category = "Deck Builder")
 	FDeckData GetWorkingDeck() const;
@@ -49,6 +30,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Deck Builder")
 	int32 GetOwnedCardCount(FName CardId) const;
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	FDeckCollection GetDeckCollection() const;
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	int32 GetSelectedDeckIndex() const;
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	int32 GetDeckCardCount(int32 DeckSlotIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "Deck Builder")
 	bool HasOwnedCard(FName CardId) const;
@@ -70,6 +60,9 @@ protected:
 	void BP_OnOwnedCardsChanged();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Deck Builder")
+	void BP_OnDeckCollectionChanged(FDeckCollection DeckCollection);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Deck Builder")
 	void BP_OnSubsystemBound();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "Deck Builder")
@@ -87,4 +80,7 @@ private:
 
 	UFUNCTION()
 	void HandleSubsystemOwnedCardsChanged();
+
+	UFUNCTION()
+	void HandleSubsystemDeckCollectionChanged(FDeckCollection DeckCollection);
 };

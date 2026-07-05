@@ -7,6 +7,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWorkingDeckChanged, FDeckData, WorkingDeck);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOwnedCardsChanged);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeckCollectionChanged, FDeckCollection, DeckCollection);
 
 UCLASS()
 class CORECLAVE_API UDeckBuilderSubsystem : public UGameInstanceSubsystem
@@ -22,6 +23,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Deck Builder")
 	FOnOwnedCardsChanged OnOwnedCardsChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Deck Builder")
+	FOnDeckCollectionChanged OnDeckCollectionChanged;
+
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	FDeckData GetWorkingDeck() const { return WorkingDeck; }
 
@@ -30,6 +34,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	void ResetWorkingDeck();
+
+	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
+	bool SelectDeckSlot(int32 NewSelectedDeckIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	bool AddCard(FName CardId);
@@ -88,6 +95,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	void GetOwnedCardCounts(TArray<FName>& OutCardIds, TArray<int32>& OutCounts) const;
 
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	FDeckCollection GetDeckCollection() const { return DeckCollection; }
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	int32 GetSelectedDeckIndex() const { return DeckCollection.SelectedDeckIndex; }
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	int32 GetDeckCardCount(int32 DeckIndex) const;
+
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	void SeedSampleOwnedCards();
 
@@ -104,6 +120,9 @@ public:
 private:
 	UPROPERTY()
 	TMap<FName, int32> DefaultOwnedCardCounts;
+
+	UPROPERTY()
+	FDeckCollection DeckCollection;
 
 	UPROPERTY()
 	FDeckData WorkingDeck;
@@ -128,4 +147,8 @@ private:
 	void NormalizeOwnedCardCounts();
 	void BroadcastWorkingDeckChanged();
 	void BroadcastOwnedCardsChanged();
+	void BroadcastDeckCollectionChanged();
+	void EnsureDeckSlotCount(int32 DesiredDeckCount);
+	void CommitWorkingDeckToSelectedSlot();
+	void RestoreOwnedCardCountsForWorkingDeck();
 };

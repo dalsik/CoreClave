@@ -4,6 +4,7 @@
 #include "DeckBuilderPlayerController.h"
 #include "DeckBuilderSubsystem.h"
 #include "Blueprint/DragDropOperation.h"
+#include "Kismet/GameplayStatics.h"
 
 bool UDeckBuilderDeckAreaWidget::TryResolveCardIdFromOperation(UDragDropOperation* InOperation, FName& OutCardId) const
 {
@@ -64,6 +65,10 @@ bool UDeckBuilderDeckAreaWidget::NativeOnDrop(const FGeometry& InGeometry, const
 			DeckBuilderSubsystem->ConsumeOwnedCard(CardId);
 		}
 		BP_SetHoverState(false);
+		if (CardDropSound)
+		{
+			UGameplayStatics::PlaySound2D(this, CardDropSound);
+		}
 		return true;
 	}
 

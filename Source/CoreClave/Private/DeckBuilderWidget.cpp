@@ -1,8 +1,6 @@
-#include "DeckBuilderWidget.h"
+﻿#include "DeckBuilderWidget.h"
 
-#include "DeckBuilderPlayerController.h"
 #include "DeckBuilderSubsystem.h"
-#include "Kismet/GameplayStatics.h"
 
 void UDeckBuilderWidget::NativeConstruct()
 {
@@ -31,6 +29,7 @@ void UDeckBuilderWidget::BindSubsystem()
 	{
 		CachedDeckBuilderSubsystem->OnWorkingDeckChanged.AddUniqueDynamic(this, &UDeckBuilderWidget::HandleSubsystemWorkingDeckChanged);
 		CachedDeckBuilderSubsystem->OnOwnedCardsChanged.AddUniqueDynamic(this, &UDeckBuilderWidget::HandleSubsystemOwnedCardsChanged);
+		CachedDeckBuilderSubsystem->OnDeckCollectionChanged.AddUniqueDynamic(this, &UDeckBuilderWidget::HandleSubsystemDeckCollectionChanged);
 		BP_OnSubsystemBound();
 		RefreshFromSubsystem();
 	}
@@ -42,6 +41,7 @@ void UDeckBuilderWidget::UnbindSubsystem()
 	{
 		CachedDeckBuilderSubsystem->OnWorkingDeckChanged.RemoveDynamic(this, &UDeckBuilderWidget::HandleSubsystemWorkingDeckChanged);
 		CachedDeckBuilderSubsystem->OnOwnedCardsChanged.RemoveDynamic(this, &UDeckBuilderWidget::HandleSubsystemOwnedCardsChanged);
+		CachedDeckBuilderSubsystem->OnDeckCollectionChanged.RemoveDynamic(this, &UDeckBuilderWidget::HandleSubsystemDeckCollectionChanged);
 		CachedDeckBuilderSubsystem = nullptr;
 		BP_OnSubsystemUnbound();
 	}
@@ -52,92 +52,9 @@ void UDeckBuilderWidget::RefreshFromSubsystem()
 	if (CachedDeckBuilderSubsystem)
 	{
 		BP_OnWorkingDeckChanged(CachedDeckBuilderSubsystem->GetWorkingDeck());
+		BP_OnOwnedCardsChanged();
+		BP_OnDeckCollectionChanged(CachedDeckBuilderSubsystem->GetDeckCollection());
 	}
-}
-
-void UDeckBuilderWidget::RequestAddCard(FName CardId)
-{
-	if (ADeckBuilderPlayerController* DeckBuilderPlayerController = GetDeckBuilderPlayerController())
-	{
-		DeckBuilderPlayerController->AddCardToWorkingDeck(CardId);
-		return;
-	}
-
-	if (CachedDeckBuilderSubsystem)
-	{
-		CachedDeckBuilderSubsystem->AddCard(CardId);
-	}
-}
-
-void UDeckBuilderWidget::RequestRemoveCard(int32 CardIndex)
-{
-	if (ADeckBuilderPlayerController* DeckBuilderPlayerController = GetDeckBuilderPlayerController())
-	{
-		DeckBuilderPlayerController->RemoveCardFromWorkingDeck(CardIndex);
-		return;
-	}
-
-	if (CachedDeckBuilderSubsystem)
-	{
-		CachedDeckBuilderSubsystem->RemoveCardAt(CardIndex);
-	}
-}
-
-void UDeckBuilderWidget::RequestSaveDeck()
-{
-	if (ADeckBuilderPlayerController* DeckBuilderPlayerController = GetDeckBuilderPlayerController())
-	{
-		DeckBuilderPlayerController->SaveCurrentDeckToSlot();
-		return;
-	}
-
-	if (CachedDeckBuilderSubsystem)
-	{
-		CachedDeckBuilderSubsystem->SaveToSlot();
-	}
-}
-
-void UDeckBuilderWidget::RequestLoadDeck()
-{
-	if (ADeckBuilderPlayerController* DeckBuilderPlayerController = GetDeckBuilderPlayerController())
-	{
-		DeckBuilderPlayerController->LoadDeckFromSlot();
-		return;
-	}
-
-	if (CachedDeckBuilderSubsystem)
-	{
-		CachedDeckBuilderSubsystem->LoadFromSlot();
-	}
-}
-
-void UDeckBuilderWidget::RequestStartBattle()
-{
-	if (ADeckBuilderPlayerController* DeckBuilderPlayerController = GetDeckBuilderPlayerController())
-	{
-		DeckBuilderPlayerController->RequestStartBattle();
-		return;
-	}
-
-	if (!CachedDeckBuilderSubsystem)
-	{
-		return;
-	}
-
-	FText ValidationError;
-	if (!CachedDeckBuilderSubsystem->ValidateWorkingDeck(ValidationError))
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Deck validation failed: %s"), *ValidationError.ToString());
-		return;
-	}
-
-	CachedDeckBuilderSubsystem->SaveToSlot();
-	UGameplayStatics::OpenLevel(this, CachedDeckBuilderSubsystem->GetBattleMapName());
-}
-
-ADeckBuilderPlayerController* UDeckBuilderWidget::GetDeckBuilderPlayerController() const
-{
-	return GetOwningPlayer() ? Cast<ADeckBuilderPlayerController>(GetOwningPlayer()) : nullptr;
 }
 
 FDeckData UDeckBuilderWidget::GetWorkingDeck() const
@@ -153,6 +70,21 @@ int32 UDeckBuilderWidget::GetWorkingDeckCardCount() const
 int32 UDeckBuilderWidget::GetOwnedCardCount(FName CardId) const
 {
 	return CachedDeckBuilderSubsystem ? CachedDeckBuilderSubsystem->GetOwnedCardCount(CardId) : 0;
+}
+
+FDeckCollection UDeckBuilderWidget::GetDeckCollection() const
+{
+	return CachedDeckBuilderSubsystem ? CachedDeckBuilderSubsystem->GetDeckCollection() : FDeckCollection();
+}
+
+int32 UDeckBuilderWidget::GetSelectedDeckIndex() const
+{
+	return CachedDeckBuilderSubsystem ? CachedDeckBuilderSubsystem->GetSelectedDeckIndex() : INDEX_NONE;
+}
+
+int32 UDeckBuilderWidget::GetDeckCardCount(int32 DeckSlotIndex) const
+{
+	return CachedDeckBuilderSubsystem ? CachedDeckBuilderSubsystem->GetDeckCardCount(DeckSlotIndex) : 0;
 }
 
 bool UDeckBuilderWidget::HasOwnedCard(FName CardId) const
@@ -206,4 +138,9 @@ void UDeckBuilderWidget::HandleSubsystemWorkingDeckChanged(FDeckData WorkingDeck
 void UDeckBuilderWidget::HandleSubsystemOwnedCardsChanged()
 {
 	BP_OnOwnedCardsChanged();
+}
+
+void UDeckBuilderWidget::HandleSubsystemDeckCollectionChanged(FDeckCollection DeckCollection)
+{
+	BP_OnDeckCollectionChanged(DeckCollection);
 }

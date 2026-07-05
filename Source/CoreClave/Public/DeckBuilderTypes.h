@@ -60,6 +60,11 @@ struct FDeckCollection
 		return Decks.IsValidIndex(SelectedDeckIndex);
 	}
 
+	int32 GetDeckCount() const
+	{
+		return Decks.Num();
+	}
+
 	FDeckData* GetSelectedDeck()
 	{
 		return Decks.IsValidIndex(SelectedDeckIndex) ? &Decks[SelectedDeckIndex] : nullptr;
@@ -68,6 +73,21 @@ struct FDeckCollection
 	const FDeckData* GetSelectedDeck() const
 	{
 		return Decks.IsValidIndex(SelectedDeckIndex) ? &Decks[SelectedDeckIndex] : nullptr;
+	}
+
+	FDeckData* GetDeckAt(int32 DeckIndex)
+	{
+		return Decks.IsValidIndex(DeckIndex) ? &Decks[DeckIndex] : nullptr;
+	}
+
+	const FDeckData* GetDeckAt(int32 DeckIndex) const
+	{
+		return Decks.IsValidIndex(DeckIndex) ? &Decks[DeckIndex] : nullptr;
+	}
+
+	int32 GetDeckCardCount(int32 DeckIndex) const
+	{
+		return Decks.IsValidIndex(DeckIndex) ? Decks[DeckIndex].CardIds.Num() : 0;
 	}
 
 	FDeckData& GetOrCreateSingleDeck()
@@ -84,6 +104,54 @@ struct FDeckCollection
 		}
 
 		return Decks[SelectedDeckIndex];
+	}
+
+	FDeckData& GetOrCreateDeckAt(int32 DeckIndex)
+	{
+		DeckIndex = FMath::Max(DeckIndex, 0);
+
+		while (Decks.Num() <= DeckIndex)
+		{
+			const int32 NewDeckIndex = Decks.AddDefaulted();
+			if (Decks[NewDeckIndex].DeckName.IsNone())
+			{
+				Decks[NewDeckIndex].DeckName = FName(*FString::Printf(TEXT("Deck_%02d"), NewDeckIndex + 1));
+			}
+		}
+
+		if (!Decks.IsValidIndex(SelectedDeckIndex))
+		{
+			SelectedDeckIndex = 0;
+		}
+
+		return Decks[DeckIndex];
+	}
+
+	void EnsureDeckCount(int32 DesiredDeckCount)
+	{
+		DesiredDeckCount = FMath::Max(DesiredDeckCount, 1);
+
+		while (Decks.Num() < DesiredDeckCount)
+		{
+			const int32 NewDeckIndex = Decks.AddDefaulted();
+			if (Decks[NewDeckIndex].DeckName.IsNone())
+			{
+				Decks[NewDeckIndex].DeckName = FName(*FString::Printf(TEXT("Deck_%02d"), NewDeckIndex + 1));
+			}
+		}
+
+		for (int32 DeckIndex = 0; DeckIndex < Decks.Num(); ++DeckIndex)
+		{
+			if (Decks[DeckIndex].DeckName.IsNone())
+			{
+				Decks[DeckIndex].DeckName = FName(*FString::Printf(TEXT("Deck_%02d"), DeckIndex + 1));
+			}
+		}
+
+		if (!Decks.IsValidIndex(SelectedDeckIndex))
+		{
+			SelectedDeckIndex = 0;
+		}
 	}
 
 	void EnsureOneDeckExists()

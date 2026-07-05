@@ -25,9 +25,6 @@ public:
 	float HP;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float ATK;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float SPD;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
