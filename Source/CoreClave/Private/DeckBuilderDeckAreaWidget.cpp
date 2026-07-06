@@ -60,10 +60,6 @@ bool UDeckBuilderDeckAreaWidget::NativeOnDrop(const FGeometry& InGeometry, const
 	if (ADeckBuilderPlayerController* DeckBuilderPlayerController = Cast<ADeckBuilderPlayerController>(GetOwningPlayer()))
 	{
 		DeckBuilderPlayerController->AddCardToWorkingDeck(CardId);
-		if (UDeckBuilderSubsystem* DeckBuilderSubsystem = DeckBuilderPlayerController->GetDeckBuilderSubsystem())
-		{
-			DeckBuilderSubsystem->ConsumeOwnedCard(CardId);
-		}
 		BP_SetHoverState(false);
 		if (CardDropSound)
 		{

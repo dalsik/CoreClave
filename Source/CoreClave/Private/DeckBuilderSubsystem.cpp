@@ -21,7 +21,6 @@ void UDeckBuilderSubsystem::SetWorkingDeck(const FDeckData& NewDeckData)
 {
 	WorkingDeck = NewDeckData;
 	NormalizeWorkingDeck();
-	CommitWorkingDeckToSelectedSlot();
 	RestoreOwnedCardCountsForWorkingDeck();
 	BroadcastWorkingDeckChanged();
 	BroadcastDeckCollectionChanged();
@@ -33,7 +32,6 @@ void UDeckBuilderSubsystem::ResetWorkingDeck()
 	WorkingDeck.Reset();
 	WorkingDeck.DeckName = FName(TEXT("Deck_01"));
 	NormalizeWorkingDeck();
-	CommitWorkingDeckToSelectedSlot();
 	RestoreOwnedCardCountsForWorkingDeck();
 	BroadcastWorkingDeckChanged();
 	BroadcastDeckCollectionChanged();
@@ -49,7 +47,6 @@ bool UDeckBuilderSubsystem::SelectDeckSlot(int32 NewSelectedDeckIndex)
 		return false;
 	}
 
-	CommitWorkingDeckToSelectedSlot();
 	DeckCollection.SelectedDeckIndex = NewSelectedDeckIndex;
 	WorkingDeck = DeckCollection.Decks[NewSelectedDeckIndex];
 	NormalizeWorkingDeck();
@@ -68,7 +65,6 @@ bool UDeckBuilderSubsystem::AddCard(FName CardId)
 	}
 
 	WorkingDeck.CardIds.Add(CardId);
-	CommitWorkingDeckToSelectedSlot();
 	if (int32* StoredCount = OwnedCardCounts.Find(CardId))
 	{
 		*StoredCount = FMath::Max(*StoredCount - 1, 0);
@@ -90,7 +86,6 @@ bool UDeckBuilderSubsystem::RemoveCardAt(int32 CardIndex)
 
 	const FName RemovedCardId = WorkingDeck.CardIds[CardIndex];
 	WorkingDeck.CardIds.RemoveAt(CardIndex);
-	CommitWorkingDeckToSelectedSlot();
 	if (!RemovedCardId.IsNone())
 	{
 		int32& StoredCount = OwnedCardCounts.FindOrAdd(RemovedCardId);
@@ -136,7 +131,6 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 		NormalizeWorkingDeck();
 		OwnedCardCounts = DefaultOwnedCardCounts;
 		NormalizeOwnedCardCounts();
-		CommitWorkingDeckToSelectedSlot();
 		BroadcastDeckCollectionChanged();
 		BroadcastWorkingDeckChanged();
 		BroadcastOwnedCardsChanged();
