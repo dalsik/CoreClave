@@ -17,6 +17,9 @@ class CORECLAVE_API UDeckBuilderSubsystem : public UGameInstanceSubsystem
 public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Boolean")
+	bool bHasUnsavedChanges = false;
+
 	UPROPERTY(BlueprintAssignable, Category = "Deck Builder")
 	FOnWorkingDeckChanged OnWorkingDeckChanged;
 
@@ -25,6 +28,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Deck Builder")
 	FOnDeckCollectionChanged OnDeckCollectionChanged;
+
+	UFUNCTION(BlueprintPure, Category = "Deck Builder")
+	bool GetHasUnsavedChanges() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
+	void SetHasUnsavedChanges(bool bInHasUnsavedChanges);
 
 	UFUNCTION(BlueprintCallable, Category = "Deck Builder")
 	FDeckData GetWorkingDeck() const { return WorkingDeck; }

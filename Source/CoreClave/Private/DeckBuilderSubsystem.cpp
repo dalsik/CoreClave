@@ -38,6 +38,10 @@ void UDeckBuilderSubsystem::ResetWorkingDeck()
 	BroadcastOwnedCardsChanged();
 }
 
+/// <summary>
+/// 이미 존재하는 덱 슬롯을 선택하거나 새로운 덱 슬롯을 선택하는 메서드
+/// </summary>
+
 bool UDeckBuilderSubsystem::SelectDeckSlot(int32 NewSelectedDeckIndex)
 {
 	EnsureDeckSlotCount(5);
@@ -51,12 +55,17 @@ bool UDeckBuilderSubsystem::SelectDeckSlot(int32 NewSelectedDeckIndex)
 	WorkingDeck = DeckCollection.Decks[NewSelectedDeckIndex];
 	NormalizeWorkingDeck();
 	RestoreOwnedCardCountsForWorkingDeck();
+
+	bHasUnsavedChanges = true; // 덱 편집 후 저장되지 않은 변경 사항이 있음을 표시
+
+	// 이벤트 디스패처 호출
 	BroadcastDeckCollectionChanged();
 	BroadcastWorkingDeckChanged();
 	BroadcastOwnedCardsChanged();
 	return true;
 }
 
+// 현재 편성중인 카드를 덱에 추가해주는 메서드
 bool UDeckBuilderSubsystem::AddCard(FName CardId)
 {
 	if (CardId.IsNone() || WorkingDeck.IsAtMaxSize(MaxDeckSize))
@@ -69,8 +78,10 @@ bool UDeckBuilderSubsystem::AddCard(FName CardId)
 	{
 		*StoredCount = FMath::Max(*StoredCount - 1, 0);
 	}
+	
+	bHasUnsavedChanges = true; // 덱 편집 후 저장되지 않은 변경 사항이 있음을 표시
+
 	NormalizeWorkingDeck();
-	NormalizeOwnedCardCounts();
 	BroadcastDeckCollectionChanged();
 	BroadcastWorkingDeckChanged();
 	BroadcastOwnedCardsChanged();
@@ -91,8 +102,10 @@ bool UDeckBuilderSubsystem::RemoveCardAt(int32 CardIndex)
 		int32& StoredCount = OwnedCardCounts.FindOrAdd(RemovedCardId);
 		++StoredCount;
 	}
+
+	bHasUnsavedChanges = true; // 덱 편집 후 저장되지 않은 변경 사항이 있음을 표시
+
 	NormalizeWorkingDeck();
-	NormalizeOwnedCardCounts();
 	BroadcastDeckCollectionChanged();
 	BroadcastWorkingDeckChanged();
 	BroadcastOwnedCardsChanged();
@@ -122,6 +135,7 @@ bool UDeckBuilderSubsystem::ValidateWorkingDeck(FText& OutErrorText) const
 
 bool UDeckBuilderSubsystem::LoadFromSlot()
 {
+	// 저장된 파일이 없을 경우
 	if (!UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex))
 	{
 		DeckCollection.Decks.Reset();
@@ -131,12 +145,16 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 		NormalizeWorkingDeck();
 		OwnedCardCounts = DefaultOwnedCardCounts;
 		NormalizeOwnedCardCounts();
+
+		bHasUnsavedChanges = false; // 저장되지 않은 변경 사항이 없음을 표시
+		// 이벤트 디스패처 호출
 		BroadcastDeckCollectionChanged();
 		BroadcastWorkingDeckChanged();
 		BroadcastOwnedCardsChanged();
 		return false;
 	}
 
+	// 저장된 파일을 정상적으로 읽었을 때
 	if (UDeckBuilderSaveGame* SaveGame = Cast<UDeckBuilderSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName.ToString(), SaveUserIndex)))
 	{
 		DeckCollection = SaveGame->DeckCollection;
@@ -156,12 +174,17 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 			OwnedCardCounts = DefaultOwnedCardCounts;
 		}
 		NormalizeOwnedCardCounts();
-		CommitWorkingDeckToSelectedSlot();
+
+		bHasUnsavedChanges = false; // 저장된 파일을 읽은 후에는 변경 사항이 없음을 표시
+
+		// 이벤트 디스패처 호출
 		BroadcastDeckCollectionChanged();
 		BroadcastWorkingDeckChanged();
 		BroadcastOwnedCardsChanged();
 		return true;
 	}
+
+	// 여기는 위에서 모두 캐스팅에 실패했을 때 도달하는 코드로, 저장된 파일이 손상되었거나 잘못된 형식일 경우를 처리
 
 	DeckCollection.Decks.Reset();
 	DeckCollection.SelectedDeckIndex = 0;
@@ -170,7 +193,10 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 	NormalizeWorkingDeck();
 	OwnedCardCounts = DefaultOwnedCardCounts;
 	NormalizeOwnedCardCounts();
-	CommitWorkingDeckToSelectedSlot();
+
+	bHasUnsavedChanges = false; // 저장되지 않은 변경 사항이 없음을 표시
+
+	
 	BroadcastDeckCollectionChanged();
 	BroadcastWorkingDeckChanged();
 	BroadcastOwnedCardsChanged();
@@ -196,6 +222,8 @@ bool UDeckBuilderSubsystem::SaveToSlot()
 		BroadcastWorkingDeckChanged();
 		BroadcastDeckCollectionChanged();
 		BroadcastOwnedCardsChanged();
+
+		bHasUnsavedChanges = false; // 저장 후에는 변경 사항이 없음을 표시
 	}
 
 	return bSaved;
@@ -310,11 +338,13 @@ bool UDeckBuilderSubsystem::ConsumeOwnedCard(FName CardId, int32 Count)
 	}
 
 	*StoredCount -= Count;
-	NormalizeOwnedCardCounts();
 	BroadcastOwnedCardsChanged();
 	return true;
 }
 
+/// <summary>
+/// 현재 편성중인 덱을 정규화하는 메서드
+/// </summary>
 void UDeckBuilderSubsystem::NormalizeWorkingDeck()
 {
 	if (WorkingDeck.DeckName.IsNone())
@@ -328,6 +358,9 @@ void UDeckBuilderSubsystem::NormalizeWorkingDeck()
 	}
 }
 
+/// <summary>
+/// 카드가	없는 경우나 소유 카드 수가 0 이하인 경우를 제거하는 메서드
+/// </summary>
 void UDeckBuilderSubsystem::NormalizeOwnedCardCounts()
 {
 	TArray<FName> KeysToRemove;
@@ -427,6 +460,18 @@ void UDeckBuilderSubsystem::GetWorkingDeckManaCurve(TArray<int32>& OutManaCurve,
 	}
 }
 
+bool UDeckBuilderSubsystem::GetHasUnsavedChanges() const
+{
+	return bHasUnsavedChanges;
+}
+
+void UDeckBuilderSubsystem::SetHasUnsavedChanges(bool bInHasUnsavedChanges)
+{
+	bHasUnsavedChanges = bInHasUnsavedChanges;
+}
+
+
+// 이벤트 디스패처 메서드
 void UDeckBuilderSubsystem::BroadcastWorkingDeckChanged()
 {
 	OnWorkingDeckChanged.Broadcast(WorkingDeck);

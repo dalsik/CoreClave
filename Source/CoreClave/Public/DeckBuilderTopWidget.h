@@ -27,6 +27,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Deck Builder|Top")
 	int32 GetDeckSlotCount() const;
 
+	
+
 private:
 	UDeckBuilderSubsystem* GetDeckBuilderSubsystem() const;
 };
