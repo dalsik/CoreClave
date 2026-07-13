@@ -15,6 +15,7 @@ void UDeckBuilderCardListWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// 이벤트 디스패처 바인딩
 	BindListSubsystem();
 	BindNavigationButtons();
 	RebuildCardSlots();
@@ -54,6 +55,9 @@ void UDeckBuilderCardListWidget::UnbindListSubsystem()
 	}
 }
 
+/// <summary>
+/// 버튼 이벤트 디스패처 바인딩
+/// </summary>
 void UDeckBuilderCardListWidget::BindNavigationButtons()
 {
 	if (NextButton)
@@ -69,6 +73,9 @@ void UDeckBuilderCardListWidget::BindNavigationButtons()
 	}
 }
 
+/// <summary>
+///  이벤트 디스패처 언바인딩
+/// </summary>
 void UDeckBuilderCardListWidget::UnbindNavigationButtons()
 {
 	if (NextButton)
@@ -82,6 +89,9 @@ void UDeckBuilderCardListWidget::UnbindNavigationButtons()
 	}
 }
 
+/// <summary>
+///  카드 슬롯 재구성
+/// </summary>
 void UDeckBuilderCardListWidget::RebuildCardSlots()
 {
 	CardsPerPage = FMath::Max(Rows, 1) * FMath::Max(Columns, 1);
@@ -109,6 +119,9 @@ void UDeckBuilderCardListWidget::RefreshCardList()
 		TrackedCardIds.Num(), GetTotalPageCount(), CurrentPageIndex);
 }
 
+/// <summary>
+/// 소유하고 있는 카드 ID를 동기화하여 TrackedCardIds 배열을 업데이트.
+/// </summary>
 void UDeckBuilderCardListWidget::SyncTrackedCardIds()
 {
 	if (!GetDeckBuilderSubsystem())
