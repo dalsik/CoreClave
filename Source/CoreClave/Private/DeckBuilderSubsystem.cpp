@@ -12,7 +12,7 @@ void UDeckBuilderSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	InitializeDefaultOwnedCards();
+	InitializeDefaultOwnedCards(); // 기본카드 세팅
 	EnsureDeckSlotCount(5);
 	LoadFromSlot();
 }
@@ -56,7 +56,7 @@ bool UDeckBuilderSubsystem::SelectDeckSlot(int32 NewSelectedDeckIndex)
 	NormalizeWorkingDeck();
 	RestoreOwnedCardCountsForWorkingDeck();
 
-	bHasUnsavedChanges = true; // 덱 편집 후 저장되지 않은 변경 사항이 있음을 표시
+	bHasUnsavedChanges = false; // 단순 슬롯 변경버튼은 편집버튼이 아님.
 
 	// 이벤트 디스패처 호출
 	BroadcastDeckCollectionChanged();
@@ -133,20 +133,30 @@ bool UDeckBuilderSubsystem::ValidateWorkingDeck(FText& OutErrorText) const
 	return true;
 }
 
+/// <summary>
+/// 편성탕의 덱을 불러오는 기능. 
+/// Subsystem에 저장되어 있는 덱이 있다면 해당 덱을, 아니라면 그냥 디폴트 편성으로 설정.
+/// </summary>
+/// <returns></returns>
 bool UDeckBuilderSubsystem::LoadFromSlot()
 {
 	// 저장된 파일이 없을 경우
 	if (!UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex))
 	{
+		// DeckCollection 초기화 및 0번 인덱스로 세팅.
 		DeckCollection.Decks.Reset();
 		DeckCollection.SelectedDeckIndex = 0;
-		EnsureDeckSlotCount(5);
+		EnsureDeckSlotCount(5); // 5개의 덱 슬롯을 보장
+
+
+		// 현재 작업중인 덱을 첫 번째 슬롯으로 초기화
 		WorkingDeck = DeckCollection.Decks.IsValidIndex(0) ? DeckCollection.Decks[0] : FDeckData();
 		NormalizeWorkingDeck();
 		OwnedCardCounts = DefaultOwnedCardCounts;
 		NormalizeOwnedCardCounts();
 
 		bHasUnsavedChanges = false; // 저장되지 않은 변경 사항이 없음을 표시
+
 		// 이벤트 디스패처 호출
 		BroadcastDeckCollectionChanged();
 		BroadcastWorkingDeckChanged();
@@ -160,20 +170,15 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 		DeckCollection = SaveGame->DeckCollection;
 		EnsureDeckSlotCount(5);
 
-		if (!DeckCollection.IsValidSelection())
-		{
-			DeckCollection.SelectedDeckIndex = 0;
-		}
+		// 처음 들어갈 때 무조건 0번 편성창에서 시작하도록
+		DeckCollection.SelectedDeckIndex = 0;
 
-		WorkingDeck = DeckCollection.IsValidSelection() ? DeckCollection.Decks[DeckCollection.SelectedDeckIndex] : FDeckData();
-		NormalizeWorkingDeck();
+		// 저장된 파일에서 첫번째 슬롯의 덱을 불러옴.
+		WorkingDeck = DeckCollection.Decks[0];
+		NormalizeWorkingDeck(); // None값 방지.
 
-		OwnedCardCounts = SaveGame->OwnedCardCounts;
-		if (OwnedCardCounts.Num() == 0)
-		{
-			OwnedCardCounts = DefaultOwnedCardCounts;
-		}
-		NormalizeOwnedCardCounts();
+		// 기본 보유 카드에세 현재 덱에 사용된 수량을 차감. 이때 차감만 하는거고 0장이라해도 우리는 비활성화 및 Opacity 감소해서 나타내야 한다.
+		RestoreOwnedCardCountsForWorkingDeck();
 
 		bHasUnsavedChanges = false; // 저장된 파일을 읽은 후에는 변경 사항이 없음을 표시
 
@@ -185,7 +190,6 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 	}
 
 	// 여기는 위에서 모두 캐스팅에 실패했을 때 도달하는 코드로, 저장된 파일이 손상되었거나 잘못된 형식일 경우를 처리
-
 	DeckCollection.Decks.Reset();
 	DeckCollection.SelectedDeckIndex = 0;
 	EnsureDeckSlotCount(5);
@@ -211,12 +215,15 @@ bool UDeckBuilderSubsystem::SaveToSlot()
 		return false;
 	}
 
+	// 지금까지 편성한 덱을 해당하는 슬롯에 저장을 하도록 설정.
 	CommitWorkingDeckToSelectedSlot();
 	EnsureDeckSlotCount(5);
 	SaveGame->DeckCollection = DeckCollection;
 	SaveGame->OwnedCardCounts = OwnedCardCounts;
 
 	const bool bSaved = UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlotName.ToString(), SaveUserIndex);
+
+	// 저장 되었으면 이벤트 디스패처 호출
 	if (bSaved)
 	{
 		BroadcastWorkingDeckChanged();
@@ -282,7 +289,7 @@ void UDeckBuilderSubsystem::GetOwnedCardCounts(TArray<FName>& OutCardIds, TArray
 
 	for (const TPair<FName, int32>& Entry : OwnedCardCounts)
 	{
-		if (Entry.Key.IsNone() || Entry.Value <= 0)
+		if (Entry.Key.IsNone())
 		{
 			continue;
 		}
@@ -366,7 +373,7 @@ void UDeckBuilderSubsystem::NormalizeOwnedCardCounts()
 	TArray<FName> KeysToRemove;
 	for (const TPair<FName, int32>& Entry : OwnedCardCounts)
 	{
-		if (Entry.Key.IsNone() || Entry.Value <= 0)
+		if (Entry.Key.IsNone())
 		{
 			KeysToRemove.Add(Entry.Key);
 		}

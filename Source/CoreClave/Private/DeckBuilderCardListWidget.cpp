@@ -138,7 +138,7 @@ void UDeckBuilderCardListWidget::SyncTrackedCardIds()
 	{
 		const FName CardId = OwnedCardIds[Index];
 		const int32 CardCount = OwnedCardCounts.IsValidIndex(Index) ? OwnedCardCounts[Index] : 0;
-		if (CardId.IsNone() || CardCount <= 0)
+		if (CardId.IsNone()) // 처음에 여기서 0장인 경우에는 넘어가도록 했는데 0장도 표시해야하긴 함.
 		{
 			continue;
 		}

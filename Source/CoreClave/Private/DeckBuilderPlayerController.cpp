@@ -29,7 +29,6 @@ void ADeckBuilderPlayerController::BeginPlay()
 	CachedDeckBuilderSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UDeckBuilderSubsystem>() : nullptr;
 
 	OpenDeckBuilderWidget();
-	LoadDeckFromSlot();
 }
 
 void ADeckBuilderPlayerController::SetupInputComponent()

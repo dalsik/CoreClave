@@ -11,6 +11,9 @@ enum class EDeckBuilderPhase : uint8
 	Traveling UMETA(DisplayName = "Traveling")
 };
 
+/// <summary>
+/// 하나의 덱 데이터를 담은 구조체
+/// </summary>
 USTRUCT(BlueprintType)
 struct FDeckData
 {
@@ -44,6 +47,9 @@ struct FDeckData
 	}
 };
 
+/// <summary>
+/// 데이터를 담은 구조체들을 배열로 담은 구조체.
+/// </summary>
 USTRUCT(BlueprintType)
 struct FDeckCollection
 {

@@ -6,6 +6,7 @@ void UDeckBuilderWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	// 이벤트 디스패처 등록
 	BindSubsystem();
 }
 
