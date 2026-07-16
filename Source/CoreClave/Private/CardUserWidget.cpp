@@ -1,24 +1,112 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "CardUserWidget.h"
+
+#include "Components/Image.h"
+#include "Components/TextBlock.h"
+#include "Engine/AssetManager.h"
+#include "Engine/StreamableManager.h"
+#include "Engine/Texture2D.h"
+
+namespace
+{
+	FText FormatCardStat(float Value)
+	{
+		FNumberFormattingOptions NumberOptions;
+		NumberOptions.SetMinimumFractionalDigits(0);
+		NumberOptions.SetMaximumFractionalDigits(1);
+
+		return FText::AsNumber(Value, &NumberOptions);
+	}
+}
 
 void UCardUserWidget::SetCardData(const FCardStatData& Data)
 {
-	// Padding¿ë º¯¼ö¿¡µµ ÇÒ´ç ÁøÇà
+	// ê°’ ë°ì´í„°ì™€ Soft Object ê²½ë¡œë¥¼ í¬í•¨í•œ êµ¬ì¡°ì²´ ì „ì²´ë¥¼ í•œ ê³³ì— ì €ì¥í•œë‹¤.
 	CachedCardData = Data;
 
-	// ¾ÆÀÌÄÜ ¼³Á¤ ·ÎÁ÷
-	if (!Data.CardIcon.IsNull())
+	// ìˆ˜ì¹˜ì™€ í…ìŠ¤íŠ¸ ë°ì´í„°ëŠ” ë¡œë“œ ê³¼ì • ì—†ì´ ë°”ë¡œ UIì— ì ìš©í•œë‹¤.
+	if (CARD_NAME_UI)
 	{
-		// UI ¾ÆÀÌÄÜÀº Áï½Ã ÇÊ¿äÇÏ¹Ç·Î µ¿±â ·Îµå¸¦ »ç¿ëÇÏµµ·Ï ÇÑ´Ù
-		UTexture2D* LoadedTexture = Data.CardIcon.LoadSynchronous();
-		
-		if (ICON_UI && LoadedTexture)
+		CARD_NAME_UI->SetText(CachedCardData.CardName);
+	}
+
+	if (HP_UI)
+	{
+		HP_UI->SetText(FormatCardStat(CachedCardData.HP));
+	}
+
+	if (SPD_UI)
+	{
+		SPD_UI->SetText(FormatCardStat(CachedCardData.SPD));
+	}
+
+	if (COST_UI)
+	{
+		COST_UI->SetText(FText::AsNumber(FMath::Max(CachedCardData.Cost, 0)));
+	}
+
+	// CardIconë§Œ Soft Objectì´ë¯€ë¡œ ì‹¤ì œ í…ìŠ¤ì²˜ê°€ í•„ìš”í•  ë•Œ ë¹„ë™ê¸°ë¡œ ë¡œë“œí•œë‹¤.
+	RequestCardIconLoad();
+}
+
+void UCardUserWidget::RequestCardIconLoad()
+{
+	if (CardIconLoadHandle.IsValid())
+	{
+		CardIconLoadHandle->CancelHandle();
+		CardIconLoadHandle.Reset();
+	}
+
+	if (!ICON_UI)
+	{
+		return;
+	}
+
+	// ìœ„ì ¯ ì¬ì‚¬ìš© ì‹œ ì´ì „ ì¹´ë“œ ì•„ì´ì½˜ì´ ë‚¨ì§€ ì•Šë„ë¡ ë¨¼ì € ë¹„ìš´ë‹¤.
+	ICON_UI->SetBrushFromTexture(nullptr);
+
+	if (CachedCardData.CardIcon.IsNull())
+	{
+		return;
+	}
+
+	// ì´ë¯¸ ë©”ëª¨ë¦¬ì— ì˜¬ë¼ì˜¨ í…ìŠ¤ì²˜ë¼ë©´ ì¶”ê°€ ìš”ì²­ ì—†ì´ ì¦‰ì‹œ ì‚¬ìš©í•œë‹¤.
+	if (UTexture2D* LoadedTexture = CachedCardData.CardIcon.Get())
+	{
+		ICON_UI->SetBrushFromTexture(LoadedTexture);
+		return;
+	}
+
+	const FSoftObjectPath RequestedIconPath = CachedCardData.CardIcon.ToSoftObjectPath();
+	TWeakObjectPtr<UCardUserWidget> WeakThis(this);
+
+	CardIconLoadHandle = UAssetManager::GetStreamableManager().RequestAsyncLoad(
+		RequestedIconPath,
+		FStreamableDelegate::CreateLambda([WeakThis, RequestedIconPath]()
+		{
+			if (UCardUserWidget* Widget = WeakThis.Get())
+			{
+				Widget->ApplyLoadedCardIcon(RequestedIconPath);
+			}
+		}));
+}
+
+void UCardUserWidget::ApplyLoadedCardIcon(const FSoftObjectPath& RequestedIconPath)
+{
+	// ë¡œë”© ë„ì¤‘ ë‹¤ë¥¸ ì¹´ë“œ ë°ì´í„°ê°€ ë“¤ì–´ì˜¨ ê²½ìš°, ì´ì „ ìš”ì²­ì˜ ê²°ê³¼ë¥¼ ì ìš©í•˜ì§€ ì•ŠëŠ”ë‹¤.
+	if (CachedCardData.CardIcon.ToSoftObjectPath() != RequestedIconPath)
+	{
+		return;
+	}
+
+	if (ICON_UI)
+	{
+		if (UTexture2D* LoadedTexture = Cast<UTexture2D>(RequestedIconPath.ResolveObject()))
 		{
 			ICON_UI->SetBrushFromTexture(LoadedTexture);
 		}
 	}
+
+	CardIconLoadHandle.Reset();
 }
 
 void UCardUserWidget::SetDraggingState(bool bDragging)
@@ -28,16 +116,27 @@ void UCardUserWidget::SetDraggingState(bool bDragging)
 
 void UCardUserWidget::ResetCardVisual()
 {
-	// À§Ä¡ ÃÊ±âÈ­
 	bIsDragging = false;
-	bIgnoreHoverOnce = true; // ÇØ´ç º¯¼ö·Î ºñÁÖ¾óÀ» ÇÑ¹ø ¸®¼ÂÀ» ÇØÁÖ¾î¾ß CoreClaveUserWidget¿¡¼­ È£¹ö È¿°ú°¡ ´Ù½Ã ÀÛµ¿ÇÒ ¼ö ÀÖ°Ô ÇÑ´Ù.
-	SetRenderTransformAngle(0.f);
+	bIgnoreHoverOnce = true;
+
+	SetRenderTransformAngle(0.0f);
 	SetRenderTranslation(FVector2D::ZeroVector);
-	SetRenderScale(FVector2D(1.f, 1.f));
+	SetRenderScale(FVector2D(1.0f, 1.0f));
+}
+
+void UCardUserWidget::NativeDestruct()
+{
+	if (CardIconLoadHandle.IsValid())
+	{
+		CardIconLoadHandle->CancelHandle();
+		CardIconLoadHandle.Reset();
+	}
+
+	Super::NativeDestruct();
 }
 
 void UCardUserWidget::NativeOnMouseLeave(const FPointerEvent& MouseEvent)
 {
 	Super::NativeOnMouseLeave(MouseEvent);
-	bIgnoreHoverOnce = false; // ¸¶¿ì½º°¡ Ä«µå¸¦ ¹ş¾î³¯ ¶§ ¸®¼Â
+	bIgnoreHoverOnce = false;
 }
