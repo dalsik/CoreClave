@@ -24,6 +24,11 @@ struct FDeckData
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame, Category = "Deck")
 	TArray<FName> CardIds;
+	
+	// 플레이어가 어떠한 슬롯을 저장을 하였는지에 대한 정보
+	// 기본 생성된 빈 슬롯과 사용자가 저장한 슬롯을 구분하기 위해 사용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, SaveGame)
+	bool bHasBeenSaved = false;
 
 	bool IsEmpty() const
 	{

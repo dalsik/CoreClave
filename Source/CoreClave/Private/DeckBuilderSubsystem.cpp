@@ -12,7 +12,7 @@ void UDeckBuilderSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
 
-	InitializeDefaultOwnedCards(); // ±âº»Ä«µå ¼¼ÆÃ
+	InitializeDefaultOwnedCards(); // ê¸°ë³¸ì¹´ë“œ ì„¸íŒ…
 	EnsureDeckSlotCount(5);
 	LoadFromSlot();
 }
@@ -39,7 +39,7 @@ void UDeckBuilderSubsystem::ResetWorkingDeck()
 }
 
 /// <summary>
-/// ÀÌ¹Ì Á¸ÀçÇÏ´Â µ¦ ½½·ÔÀ» ¼±ÅÃÇÏ°Å³ª »õ·Î¿î µ¦ ½½·ÔÀ» ¼±ÅÃÇÏ´Â ¸Ş¼­µå
+/// ì´ë¯¸ ì¡´ì¬í•˜ëŠ” ë± ìŠ¬ë¡¯ì„ ì„ íƒí•˜ê±°ë‚˜ ìƒˆë¡œìš´ ë± ìŠ¬ë¡¯ì„ ì„ íƒí•˜ëŠ” ë©”ì„œë“œ
 /// </summary>
 
 bool UDeckBuilderSubsystem::SelectDeckSlot(int32 NewSelectedDeckIndex)
@@ -56,16 +56,16 @@ bool UDeckBuilderSubsystem::SelectDeckSlot(int32 NewSelectedDeckIndex)
 	NormalizeWorkingDeck();
 	RestoreOwnedCardCountsForWorkingDeck();
 
-	bHasUnsavedChanges = false; // ´Ü¼ø ½½·Ô º¯°æ¹öÆ°Àº ÆíÁı¹öÆ°ÀÌ ¾Æ´Ô.
+	bHasUnsavedChanges = false; // ë‹¨ìˆœ ìŠ¬ë¡¯ ë³€ê²½ë²„íŠ¼ì€ í¸ì§‘ë²„íŠ¼ì´ ì•„ë‹˜.
 
-	// ÀÌº¥Æ® µğ½ºÆĞÃ³ È£Ãâ
+	// ì´ë²¤íŠ¸ ë””ìŠ¤íŒ¨ì²˜ í˜¸ì¶œ
 	BroadcastDeckCollectionChanged();
 	BroadcastWorkingDeckChanged();
 	BroadcastOwnedCardsChanged();
 	return true;
 }
 
-// ÇöÀç Æí¼ºÁßÀÎ Ä«µå¸¦ µ¦¿¡ Ãß°¡ÇØÁÖ´Â ¸Ş¼­µå
+// í˜„ì¬ í¸ì„±ì¤‘ì¸ ì¹´ë“œë¥¼ ë±ì— ì¶”ê°€í•´ì£¼ëŠ” ë©”ì„œë“œ
 bool UDeckBuilderSubsystem::AddCard(FName CardId)
 {
 	if (CardId.IsNone() || WorkingDeck.IsAtMaxSize(MaxDeckSize))
@@ -79,7 +79,7 @@ bool UDeckBuilderSubsystem::AddCard(FName CardId)
 		*StoredCount = FMath::Max(*StoredCount - 1, 0);
 	}
 	
-	bHasUnsavedChanges = true; // µ¦ ÆíÁı ÈÄ ÀúÀåµÇÁö ¾ÊÀº º¯°æ »çÇ×ÀÌ ÀÖÀ½À» Ç¥½Ã
+	bHasUnsavedChanges = true; // ë± í¸ì§‘ í›„ ì €ì¥ë˜ì§€ ì•Šì€ ë³€ê²½ ì‚¬í•­ì´ ìˆìŒì„ í‘œì‹œ
 
 	NormalizeWorkingDeck();
 	BroadcastDeckCollectionChanged();
@@ -103,7 +103,7 @@ bool UDeckBuilderSubsystem::RemoveCardAt(int32 CardIndex)
 		++StoredCount;
 	}
 
-	bHasUnsavedChanges = true; // µ¦ ÆíÁı ÈÄ ÀúÀåµÇÁö ¾ÊÀº º¯°æ »çÇ×ÀÌ ÀÖÀ½À» Ç¥½Ã
+	bHasUnsavedChanges = true; // ë± í¸ì§‘ í›„ ì €ì¥ë˜ì§€ ì•Šì€ ë³€ê²½ ì‚¬í•­ì´ ìˆìŒì„ í‘œì‹œ
 
 	NormalizeWorkingDeck();
 	BroadcastDeckCollectionChanged();
@@ -134,62 +134,77 @@ bool UDeckBuilderSubsystem::ValidateWorkingDeck(FText& OutErrorText) const
 }
 
 /// <summary>
-/// Æí¼ºÅÁÀÇ µ¦À» ºÒ·¯¿À´Â ±â´É. 
-/// Subsystem¿¡ ÀúÀåµÇ¾î ÀÖ´Â µ¦ÀÌ ÀÖ´Ù¸é ÇØ´ç µ¦À», ¾Æ´Ï¶ó¸é ±×³É µğÆúÆ® Æí¼ºÀ¸·Î ¼³Á¤.
+/// í¸ì„±íƒ•ì˜ ë±ì„ ë¶ˆëŸ¬ì˜¤ëŠ” ê¸°ëŠ¥. 
+/// Subsystemì— ì €ì¥ë˜ì–´ ìˆëŠ” ë±ì´ ìˆë‹¤ë©´ í•´ë‹¹ ë±ì„, ì•„ë‹ˆë¼ë©´ ê·¸ëƒ¥ ë””í´íŠ¸ í¸ì„±ìœ¼ë¡œ ì„¤ì •.
 /// </summary>
 /// <returns></returns>
 bool UDeckBuilderSubsystem::LoadFromSlot()
 {
-	// ÀúÀåµÈ ÆÄÀÏÀÌ ¾øÀ» °æ¿ì
+	// ì €ì¥ëœ íŒŒì¼ì´ ì—†ì„ ê²½ìš°
 	if (!UGameplayStatics::DoesSaveGameExist(SaveSlotName.ToString(), SaveUserIndex))
 	{
-		// DeckCollection ÃÊ±âÈ­ ¹× 0¹ø ÀÎµ¦½º·Î ¼¼ÆÃ.
+		// DeckCollection ì´ˆê¸°í™” ë° 0ë²ˆ ì¸ë±ìŠ¤ë¡œ ì„¸íŒ….
 		DeckCollection.Decks.Reset();
 		DeckCollection.SelectedDeckIndex = 0;
-		EnsureDeckSlotCount(5); // 5°³ÀÇ µ¦ ½½·ÔÀ» º¸Àå
+		EnsureDeckSlotCount(5); // 5ê°œì˜ ë± ìŠ¬ë¡¯ì„ ë³´ì¥
 
 
-		// ÇöÀç ÀÛ¾÷ÁßÀÎ µ¦À» Ã¹ ¹øÂ° ½½·ÔÀ¸·Î ÃÊ±âÈ­
+		// í˜„ì¬ ì‘ì—…ì¤‘ì¸ ë±ì„ ì²« ë²ˆì§¸ ìŠ¬ë¡¯ìœ¼ë¡œ ì´ˆê¸°í™”
 		WorkingDeck = DeckCollection.Decks.IsValidIndex(0) ? DeckCollection.Decks[0] : FDeckData();
 		NormalizeWorkingDeck();
 		OwnedCardCounts = DefaultOwnedCardCounts;
 		NormalizeOwnedCardCounts();
 
-		bHasUnsavedChanges = false; // ÀúÀåµÇÁö ¾ÊÀº º¯°æ »çÇ×ÀÌ ¾øÀ½À» Ç¥½Ã
+		bHasUnsavedChanges = false; // ì €ì¥ë˜ì§€ ì•Šì€ ë³€ê²½ ì‚¬í•­ì´ ì—†ìŒì„ í‘œì‹œ
 
-		// ÀÌº¥Æ® µğ½ºÆĞÃ³ È£Ãâ
+		// ì´ë²¤íŠ¸ ë””ìŠ¤íŒ¨ì²˜ í˜¸ì¶œ
 		BroadcastDeckCollectionChanged();
 		BroadcastWorkingDeckChanged();
 		BroadcastOwnedCardsChanged();
 		return false;
 	}
 
-	// ÀúÀåµÈ ÆÄÀÏÀ» Á¤»óÀûÀ¸·Î ÀĞ¾úÀ» ¶§
+	// ì €ì¥ëœ íŒŒì¼ì„ ì •ìƒì ìœ¼ë¡œ ì½ì—ˆì„ ë•Œ
 	if (UDeckBuilderSaveGame* SaveGame = Cast<UDeckBuilderSaveGame>(UGameplayStatics::LoadGameFromSlot(SaveSlotName.ToString(), SaveUserIndex)))
 	{
+		// êµ¬ë²„ì „ SaveGameì„ í˜„ì¬ í˜•ì‹ìœ¼ë¡œ ë¨¼ì € ë³´ì •í•œë‹¤.
+		const bool bMigratedSaveGame = MigrateLoadedSaveGame(*SaveGame);
+
 		DeckCollection = SaveGame->DeckCollection;
 		EnsureDeckSlotCount(5);
 
-		// Ã³À½ µé¾î°¥ ¶§ ¹«Á¶°Ç 0¹ø Æí¼ºÃ¢¿¡¼­ ½ÃÀÛÇÏµµ·Ï
+		// ë§ˆì´ê·¸ë ˆì´ì…˜ ê²°ê³¼ë¥¼ ë””ìŠ¤í¬ì— ê¸°ë¡í•´ ë‹¤ìŒ ì‹¤í–‰ë¶€í„° ë‹¤ì‹œ ë³´ì •í•˜ì§€ ì•Šë„ë¡ í•œë‹¤.
+		if (bMigratedSaveGame)
+		{
+			SaveGame->DeckCollection = DeckCollection;
+
+			if (!UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlotName.ToString(), SaveUserIndex))
+			{
+				// ì €ì¥ì— ì‹¤íŒ¨í•´ë„ í˜„ì¬ ì‹¤í–‰ì˜ ë©”ëª¨ë¦¬ ë°ì´í„°ëŠ” ì´ë¯¸ ë³´ì •ëœ ìƒíƒœë¡œ ê³„ì† ì‚¬ìš©í•œë‹¤.
+				UE_LOG(LogTemp, Warning, TEXT("Failed to persist migrated deck SaveGame."));
+			}
+		}
+
+		// ì²˜ìŒ ë“¤ì–´ê°ˆ ë•Œ ë¬´ì¡°ê±´ 0ë²ˆ í¸ì„±ì°½ì—ì„œ ì‹œì‘í•˜ë„ë¡
 		DeckCollection.SelectedDeckIndex = 0;
 
-		// ÀúÀåµÈ ÆÄÀÏ¿¡¼­ Ã¹¹øÂ° ½½·ÔÀÇ µ¦À» ºÒ·¯¿È.
+		// ì €ì¥ëœ íŒŒì¼ì—ì„œ ì²«ë²ˆì§¸ ìŠ¬ë¡¯ì˜ ë±ì„ ë¶ˆëŸ¬ì˜´.
 		WorkingDeck = DeckCollection.Decks[0];
-		NormalizeWorkingDeck(); // None°ª ¹æÁö.
+		NormalizeWorkingDeck(); // Noneê°’ ë°©ì§€.
 
-		// ±âº» º¸À¯ Ä«µå¿¡¼¼ ÇöÀç µ¦¿¡ »ç¿ëµÈ ¼ö·®À» Â÷°¨. ÀÌ¶§ Â÷°¨¸¸ ÇÏ´Â°Å°í 0ÀåÀÌ¶óÇØµµ ¿ì¸®´Â ºñÈ°¼ºÈ­ ¹× Opacity °¨¼ÒÇØ¼­ ³ªÅ¸³»¾ß ÇÑ´Ù.
+		// ê¸°ë³¸ ë³´ìœ  ì¹´ë“œì—ì„¸ í˜„ì¬ ë±ì— ì‚¬ìš©ëœ ìˆ˜ëŸ‰ì„ ì°¨ê°. ì´ë•Œ ì°¨ê°ë§Œ í•˜ëŠ”ê±°ê³  0ì¥ì´ë¼í•´ë„ ìš°ë¦¬ëŠ” ë¹„í™œì„±í™” ë° Opacity ê°ì†Œí•´ì„œ ë‚˜íƒ€ë‚´ì•¼ í•œë‹¤.
 		RestoreOwnedCardCountsForWorkingDeck();
 
-		bHasUnsavedChanges = false; // ÀúÀåµÈ ÆÄÀÏÀ» ÀĞÀº ÈÄ¿¡´Â º¯°æ »çÇ×ÀÌ ¾øÀ½À» Ç¥½Ã
+		bHasUnsavedChanges = false; // ì €ì¥ëœ íŒŒì¼ì„ ì½ì€ í›„ì—ëŠ” ë³€ê²½ ì‚¬í•­ì´ ì—†ìŒì„ í‘œì‹œ
 
-		// ÀÌº¥Æ® µğ½ºÆĞÃ³ È£Ãâ
+		// ì´ë²¤íŠ¸ ë””ìŠ¤íŒ¨ì²˜ í˜¸ì¶œ
 		BroadcastDeckCollectionChanged();
 		BroadcastWorkingDeckChanged();
 		BroadcastOwnedCardsChanged();
 		return true;
 	}
 
-	// ¿©±â´Â À§¿¡¼­ ¸ğµÎ Ä³½ºÆÃ¿¡ ½ÇÆĞÇßÀ» ¶§ µµ´ŞÇÏ´Â ÄÚµå·Î, ÀúÀåµÈ ÆÄÀÏÀÌ ¼Õ»óµÇ¾ú°Å³ª Àß¸øµÈ Çü½ÄÀÏ °æ¿ì¸¦ Ã³¸®
+	// ì—¬ê¸°ëŠ” ìœ„ì—ì„œ ëª¨ë‘ ìºìŠ¤íŒ…ì— ì‹¤íŒ¨í–ˆì„ ë•Œ ë„ë‹¬í•˜ëŠ” ì½”ë“œë¡œ, ì €ì¥ëœ íŒŒì¼ì´ ì†ìƒë˜ì—ˆê±°ë‚˜ ì˜ëª»ëœ í˜•ì‹ì¼ ê²½ìš°ë¥¼ ì²˜ë¦¬
 	DeckCollection.Decks.Reset();
 	DeckCollection.SelectedDeckIndex = 0;
 	EnsureDeckSlotCount(5);
@@ -198,7 +213,7 @@ bool UDeckBuilderSubsystem::LoadFromSlot()
 	OwnedCardCounts = DefaultOwnedCardCounts;
 	NormalizeOwnedCardCounts();
 
-	bHasUnsavedChanges = false; // ÀúÀåµÇÁö ¾ÊÀº º¯°æ »çÇ×ÀÌ ¾øÀ½À» Ç¥½Ã
+	bHasUnsavedChanges = false; // ì €ì¥ë˜ì§€ ì•Šì€ ë³€ê²½ ì‚¬í•­ì´ ì—†ìŒì„ í‘œì‹œ
 
 	
 	BroadcastDeckCollectionChanged();
@@ -215,23 +230,39 @@ bool UDeckBuilderSubsystem::SaveToSlot()
 		return false;
 	}
 
-	// Áö±İ±îÁö Æí¼ºÇÑ µ¦À» ÇØ´çÇÏ´Â ½½·Ô¿¡ ÀúÀåÀ» ÇÏµµ·Ï ¼³Á¤.
+	// ì €ì¥ ì‹¤íŒ¨ ì‹œ ì›ë˜ ìƒíƒœë¡œ ë˜ëŒë¦¬ê¸° ìœ„í•´ ê¸°ì¡´ ì €ì¥ ì—¬ë¶€ ì„ì‹œ ë³´ê´€
+	const bool bPreviousSaveState = WorkingDeck.bHasBeenSaved;
+
+	// ì‚¬ìš©ìê°€ Saveë²„íŠ¼ì„ ëˆ„ë¥¸ê²ƒì´ë¯€ë¡œ true
+	// ì´ ë¶€ë¶„ì„ Commitì „ì— ì„¤ì •í•´ì•¼ trueë¡œ ì„¤ì •í•œ ê°’ë„ DeckCollectionì— ë³µì‚¬ê°€ ì§„í–‰ëœë‹¤.
+	WorkingDeck.bHasBeenSaved = true;
+
+	// ì§€ê¸ˆê¹Œì§€ í¸ì„±í•œ ë±ì„ í•´ë‹¹í•˜ëŠ” ìŠ¬ë¡¯ì— ì €ì¥ì„ í•˜ë„ë¡ ì„¤ì •.
 	CommitWorkingDeckToSelectedSlot();
 	EnsureDeckSlotCount(5);
 	SaveGame->DeckCollection = DeckCollection;
 	SaveGame->OwnedCardCounts = OwnedCardCounts;
+	SaveGame->SaveDataVersion = UDeckBuilderSaveGame::CurrentSaveDataVersion;
 
 	const bool bSaved = UGameplayStatics::SaveGameToSlot(SaveGame, SaveSlotName.ToString(), SaveUserIndex);
 
-	// ÀúÀå µÇ¾úÀ¸¸é ÀÌº¥Æ® µğ½ºÆĞÃ³ È£Ãâ
-	if (bSaved)
+	if (!bSaved)
 	{
-		BroadcastWorkingDeckChanged();
-		BroadcastDeckCollectionChanged();
-		BroadcastOwnedCardsChanged();
+		// ì €ì¥ì— ì‹¤íŒ¨í–ˆë‹¤ë©´ ë©”ëª¨ë¦¬ì—ì„œë„ ì €ì¥ëœ ë±ìœ¼ë¡œ í‘œì‹œë˜ì§€ ì•Šë„ë¡ ì„¤ì •
+		WorkingDeck.bHasBeenSaved = bPreviousSaveState;
 
-		bHasUnsavedChanges = false; // ÀúÀå ÈÄ¿¡´Â º¯°æ »çÇ×ÀÌ ¾øÀ½À» Ç¥½Ã
+		// ë³µì›ìƒíƒœë¥¼ ë‹¤ì‹œ ìŠ¬ë¡¯ì— ë°˜ì˜
+		CommitWorkingDeckToSelectedSlot();
+		
+		return false;
 	}
+
+	// ì €ì¥ ë˜ì—ˆìœ¼ë©´ ì´ë²¤íŠ¸ ë””ìŠ¤íŒ¨ì²˜ í˜¸ì¶œ
+	BroadcastWorkingDeckChanged();
+	BroadcastDeckCollectionChanged();
+	BroadcastOwnedCardsChanged();
+
+	bHasUnsavedChanges = false; // ì €ì¥ í›„ì—ëŠ” ë³€ê²½ ì‚¬í•­ì´ ì—†ìŒì„ í‘œì‹œ
 
 	return bSaved;
 }
@@ -350,7 +381,7 @@ bool UDeckBuilderSubsystem::ConsumeOwnedCard(FName CardId, int32 Count)
 }
 
 /// <summary>
-/// ÇöÀç Æí¼ºÁßÀÎ µ¦À» Á¤±ÔÈ­ÇÏ´Â ¸Ş¼­µå
+/// í˜„ì¬ í¸ì„±ì¤‘ì¸ ë±ì„ ì •ê·œí™”í•˜ëŠ” ë©”ì„œë“œ
 /// </summary>
 void UDeckBuilderSubsystem::NormalizeWorkingDeck()
 {
@@ -366,7 +397,7 @@ void UDeckBuilderSubsystem::NormalizeWorkingDeck()
 }
 
 /// <summary>
-/// Ä«µå°¡	¾ø´Â °æ¿ì³ª ¼ÒÀ¯ Ä«µå ¼ö°¡ 0 ÀÌÇÏÀÎ °æ¿ì¸¦ Á¦°ÅÇÏ´Â ¸Ş¼­µå
+/// ì¹´ë“œê°€	ì—†ëŠ” ê²½ìš°ë‚˜ ì†Œìœ  ì¹´ë“œ ìˆ˜ê°€ 0 ì´í•˜ì¸ ê²½ìš°ë¥¼ ì œê±°í•˜ëŠ” ë©”ì„œë“œ
 /// </summary>
 void UDeckBuilderSubsystem::NormalizeOwnedCardCounts()
 {
@@ -477,8 +508,79 @@ void UDeckBuilderSubsystem::SetHasUnsavedChanges(bool bInHasUnsavedChanges)
 	bHasUnsavedChanges = bInHasUnsavedChanges;
 }
 
+bool UDeckBuilderSubsystem::MigrateLoadedSaveGame(UDeckBuilderSaveGame& SaveGame)
+{
+	bool bChanged = false;
 
-// ÀÌº¥Æ® µğ½ºÆĞÃ³ ¸Ş¼­µå
+	// ë²„ì „ 1ì—ì„œ bHasBeenSaved í•„ë“œê°€ ì¶”ê°€ëë‹¤.
+	// êµ¬ë²„ì „ SaveGameì˜ DeckCollectionì—ëŠ” í¸ì§‘ í›„ ì €ì¥ëœ ë±ë§Œ ë“¤ì–´ ìˆìœ¼ë¯€ë¡œ, ì¹´ë“œê°€ ì¡´ì¬í•˜ëŠ” ìŠ¬ë¡¯ì„ ì €ì¥ëœ ë±ìœ¼ë¡œ ë³µì›í•œë‹¤.
+	if (SaveGame.SaveDataVersion < 1)
+	{
+		for (FDeckData& DeckData : SaveGame.DeckCollection.Decks)
+		{
+			if (!DeckData.bHasBeenSaved && !DeckData.IsEmpty())
+			{
+				DeckData.bHasBeenSaved = true;
+				bChanged = true;
+			}
+		}
+	}
+
+	// ë§ˆì´ê·¸ë ˆì´ì…˜í•  ë°ì´í„°ê°€ ì—†ì–´ë„ êµ¬ë²„ì „ ë²ˆí˜¸ë¥¼ ì˜¬ë ¤ ê°™ì€ ê²€ì‚¬ë¥¼ ë°˜ë³µí•˜ì§€ ì•Šê²Œ í•œë‹¤.
+	if (SaveGame.SaveDataVersion < UDeckBuilderSaveGame::CurrentSaveDataVersion)
+	{
+		SaveGame.SaveDataVersion = UDeckBuilderSaveGame::CurrentSaveDataVersion;
+		bChanged = true;
+	}
+	else if (SaveGame.SaveDataVersion > UDeckBuilderSaveGame::CurrentSaveDataVersion)
+	{
+		// ë” ìµœì‹  ë²„ì „ì˜ ì €ì¥ íŒŒì¼ì„ êµ¬ë²„ì „ ê²Œì„ì´ ë®ì–´ì“°ì§€ ì•Šë„ë¡ ë²„ì „ì„ ë‚®ì¶”ì§€ ì•ŠëŠ”ë‹¤.
+		UE_LOG(LogTemp, Warning, TEXT("Deck SaveGame version %d is newer than supported version %d."), SaveGame.SaveDataVersion, UDeckBuilderSaveGame::CurrentSaveDataVersion);
+	}
+
+	return bChanged;
+}
+
+/// <summary>
+/// 
+/// ì¼ë‹¨ ê²€ì¦ ë¡œì§ì„ Subsystemì—ì„œ ì„ì‹œë¡œ ì‹¤í–‰
+/// </summary>
+/// <param name="DeckData"></param>
+/// <param name="OutFailureReason"></param>
+/// <returns></returns>
+
+bool UDeckBuilderSubsystem::ValidateDeckData(const FDeckData& DeckData, FText& OutFailureReason) const
+{
+	// ì‚¬ìš©ìê°€ ì €ì¥ì„ ì™„ë£Œí•œ ë±ì¸ì§€ í™•ì¸í•œë‹¤.
+	if (!DeckData.bHasBeenSaved)
+	{
+		OutFailureReason = FText::FromString(TEXT("This deck has not been saved."));
+		return false;
+	}
+
+	// ì „íˆ¬ì— í•„ìš”í•œ ì¹´ë“œ ìˆ˜ë¥¼ ì •í™•íˆ ë§Œì¡±í•˜ëŠ”ì§€ í™•ì¸í•œë‹¤.
+	if (DeckData.CardIds.Num() != MaxDeckSize)
+	{
+		OutFailureReason = FText::FromString(FString::Printf(TEXT("The deck must contain exactly %d cards. Current cards: %d."), MaxDeckSize, DeckData.CardIds.Num()));
+		return false;
+	}
+
+	// ìœ íš¨í•˜ì§€ ì•Šì€ CardIdê°€ í¬í•¨ëëŠ”ì§€ í™•ì¸í•œë‹¤.
+	for (const FName& CardId : DeckData.CardIds)
+	{
+		if (CardId.IsNone())
+		{
+			OutFailureReason = FText::FromString(TEXT("The deck contains an invalid card."));
+			return false;
+		}
+	}
+
+	OutFailureReason = FText::GetEmpty();
+	return true;
+}
+
+
+// ì´ë²¤íŠ¸ ë””ìŠ¤íŒ¨ì²˜ ë©”ì„œë“œ
 void UDeckBuilderSubsystem::BroadcastWorkingDeckChanged()
 {
 	OnWorkingDeckChanged.Broadcast(WorkingDeck);

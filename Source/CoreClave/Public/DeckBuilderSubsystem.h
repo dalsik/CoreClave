@@ -5,6 +5,8 @@
 #include "DeckBuilderTypes.h"
 #include "DeckBuilderSubsystem.generated.h"
 
+class UDeckBuilderSaveGame;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWorkingDeckChanged, FDeckData, WorkingDeck);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnOwnedCardsChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeckCollectionChanged, FDeckCollection, DeckCollection);
@@ -126,6 +128,8 @@ public:
 	int32 ResolveCardManaCost(FName CardId) const;
 	virtual int32 ResolveCardManaCost_Implementation(FName CardId) const;
 
+	bool ValidateDeckData(const FDeckData& DeckData, FText& OutFailureReason) const;
+
 private:
 	UPROPERTY()
 	TMap<FName, int32> DefaultOwnedCardCounts;
@@ -160,4 +164,5 @@ private:
 	void EnsureDeckSlotCount(int32 DesiredDeckCount);
 	void CommitWorkingDeckToSelectedSlot();
 	void RestoreOwnedCardCountsForWorkingDeck();
+	bool MigrateLoadedSaveGame(UDeckBuilderSaveGame& SaveGame);
 };

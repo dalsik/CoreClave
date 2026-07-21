@@ -14,23 +14,23 @@ struct FCardStatData : public FTableRowBase
 	GENERATED_BODY()
 
 public:
-	// ±âÈ¹ µ¥ÀÌÅÍ
+	// ê¸°íš ë°ì´í„°
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FName CardId; // µ¥ÀÌÅÍ ¿¬°á¿ë
+	FName CardId; // ë°ì´í„° ì—°ê²°ìš©
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	FText CardName; // °Ñº¸±â¿ë
+	FText CardName; // ê²‰ë³´ê¸°ìš©
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float HP;
+	float HP = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SPD;
+	float SPD = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 Cost;
+	int32 Cost = 0;
 
-	// ½ºÄÌ·¹Å» ¸Ş½Ã¿Í Ä«µå ¾ÆÀÌÄÜ UI¸¦ ¼ÒÇÁÆ® ·¹ÆÛ·±½º·Î ÀúÀå
+	// ìŠ¤ì¼ˆë ˆíƒˆ ë©”ì‹œì™€ ì¹´ë“œ ì•„ì´ì½˜ UIë¥¼ ì†Œí”„íŠ¸ ë ˆí¼ëŸ°ìŠ¤ë¡œ ì €ì¥
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	TSoftObjectPtr<USkeletalMesh> CardMesh;
 	
